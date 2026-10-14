@@ -1411,6 +1411,7 @@ const TW = [["twee","b"],["drie","b"],["vier","b"],["tien","b"],["veel","o"],["w
 const SOORT = {zn: "zelfstandig naamwoord", lw: "lidwoord", bn: "bijvoeglijk naamwoord", ww: "werkwoord", vz: "voorzetsel", vw: "voegwoord", vnw: "voornaamwoord", tw: "telwoord"};
 const DEEL = {O: "onderwerp", PV: "persoonsvorm", WG: "gezegde", LV: "lijdend voorwerp", MV: "meewerkend voorwerp", BWB: "bijwoordelijke bepaling"};
 const tok = (w, s, d) => ({w, s, d: d || null});
+const tokx = (w, s, d) => Object.assign(tok(w, s, d), {x: 1});   // twijfelgeval (tijdwoord, bijwoord): nooit als vraag, nooit als goed of fout aangerekend
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
 /* ---------- zinsbouw: elke zin is een lijst tokens met woordsoort (s) en zinsdeel (d) ---------- */
@@ -1428,9 +1429,9 @@ function np(role, pool, opts){  // naamwoordgroep: lidwoord (+ bn) + zn, of voor
 }
 function bwb(kind, tense){
   kind = kind || pick(["tijd", "plek", "hoe"]);
-  if (kind === "tijd"){ const t = pick(TIJD[tense || "tt"]); return t === "elke dag" ? [tok("elke", "vnw", "BWB"), tok("dag", "zn", "BWB")] : [tok(t, "zn", "BWB")]; }
+  if (kind === "tijd"){ const t = pick(TIJD[tense || "tt"]); return t === "elke dag" ? [tokx("elke", "vnw", "BWB"), tokx("dag", "zn", "BWB")] : [tokx(t, "zn", "BWB")]; }
   if (kind === "plek"){ const p = pick(PLEK); return [tok(pick(p[3]), "vz", "BWB"), tok(p[0], "lw", "BWB"), tok(p[1], "zn", "BWB")]; }
-  return [tok(pick(HOE), "bn", "BWB")];   // bijwoord; in groep 8 wordt 'snel' bij de bijvoeglijke naamwoorden/bijwoorden gerekend; we vragen er nooit de woordsoort van
+  return [tokx(pick(HOE), "bn", "BWB")];   // bijwoord; in groep 8 wordt 'snel' bij de bijvoeglijke naamwoorden/bijwoorden gerekend; we vragen er nooit de woordsoort van
 }
 function pvForm(v, num, tense, pers){ if (tense === "vt") return num === "pl" ? v[4] : v[3]; if (num === "pl") return v[2]; return pers === "1" ? v[7] : v[1]; }
 function sentence(opts){
@@ -1507,7 +1508,7 @@ function genFor(st, ctx){
       else if (want === "vnw") s = sentence({pron: true, skind: pick(["pron", "bez", "aanw"]), bwb: false});
       else if (want === "bn") s = sentence({skind: "bn", okind: "bn"});
       else s = sentence({});
-      const hits = s.toks.map((t, i) => [t, i]).filter(([t]) => t.s === want && !(t.d === "BWB" && (t.s === "bn" || t.s === "zn" || t.s === "vnw")));
+      const hits = s.toks.map((t, i) => [t, i]).filter(([t]) => t.s === want && !t.x);
       if (hits.length){ const [t, i] = pick(hits); return {key: `s:${want}:${t.w}`, kind: "soort", want, toks: s.toks, idx: i, label: `${t.w} (${SOORT[want]})`}; }
     }
   }
@@ -1558,12 +1559,14 @@ const T = {
   async ask(item, ctx){
     const Z = document.getElementById("gr-zin"), O = document.getElementById("gr-opts"), S = document.getElementById("gr-step");
     O.innerHTML = ""; S.innerHTML = "";
-    let step = false;
+    let step = false, lastTap = null;
     const sup = ctx.support(item.stone);
     if (item.kind === "soort" || item.kind === "deel"){
       const target = item.kind === "soort" ? [item.idx] : item.idxs;
       const name = item.kind === "soort" ? SOORT[item.want] : DEEL[item.want];
-      const okIdx = i => item.kind === "soort" ? i === item.idx : item.idxs.includes(i);
+      // soort: elk woord van die soort telt (meerdere lidwoorden of zelfstandige naamwoorden in één zin); twijfelgevallen (t.x) tellen niet
+      const same = item.kind === "soort" ? item.toks.map((t, j) => [t, j]).filter(([t]) => t.s === item.want && !t.x).map(([, j]) => j) : item.idxs;
+      const okIdx = i => same.includes(i);
       if (ctx.form === "A"){
         ctx.setAsk("Tik aan:", `het ${name}`);
         if (sup === "vol") ctx.fb.note(VRAAG[item.want]);
@@ -1572,11 +1575,12 @@ const T = {
         while (!okIdx(i)){
           step = true; Z.querySelector(`[data-i="${i}"]`).disabled = true;
           const t = item.toks[i];
-          const hint = item.kind === "deel" && item.want !== "PV" ? (() => { const pv = item.toks.findIndex(x => x.d === "PV"); Z.innerHTML = sent(item.toks, [pv], true); return `De persoonsvorm is '${item.toks[pv].w}'. ${VRAAG[item.want]}`; })() : `'${t.w}' is ${t.s ? "een " + SOORT[t.s] : "iets anders"}. ${VRAAG[item.want]}`;
+          const hint = item.kind === "deel" && item.want !== "PV" ? (() => { const pv = item.toks.findIndex(x => x.d === "PV"); Z.innerHTML = sent(item.toks, [pv], true); return `De persoonsvorm is '${item.toks[pv].w}'. ${VRAAG[item.want]}`; })() : `'${t.w}' is ${t.s && !t.x ? "een " + SOORT[t.s] : "iets anders"}. ${VRAAG[item.want]}`;
           ctx.fb.step(hint);
           i = await waitWord(Z);
         }
-        Z.innerHTML = sent(item.toks, target, false);
+        Z.innerHTML = sent(item.toks, same, false);
+        lastTap = i;
       } else {
         ctx.setAsk("Wat is", item.kind === "soort" ? `'${item.toks[item.idx].w}'?` : `'${target.map(i => item.toks[i].w).join(" ")}'?`);
         Z.innerHTML = sent(item.toks, target, false);
@@ -1588,7 +1592,8 @@ const T = {
         while (v !== item.want){ step = true; O.querySelector(`[data-v="${v}"]`).disabled = true; ctx.fb.step(VRAAG[item.want]); v = await waitOpt(O); }
         O.querySelectorAll(".gr-opt").forEach(b => { b.disabled = b.dataset.v !== item.want; });
       }
-      ctx.fb.ok(`${cap(target.map(i => item.toks[i].w).join(" "))}: ${name}.`);
+      const shown = item.kind === "soort" && lastTap != null ? [lastTap] : target;
+      ctx.fb.ok(`${cap(shown.map(i => item.toks[i].w).join(" "))}: ${name}.`);
     } else if (item.kind === "bijzin"){
       ctx.setAsk("Tik aan:", "de bijzin (één woord erin is genoeg)");
       if (sup === "vol") ctx.fb.note("In de bijzin staan de werkwoorden achteraan, na het voegwoord.");
