@@ -242,6 +242,27 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 .pl-rules[hidden]{display:none}
 .pl-rules b{font-family:var(--pl-display);font-size:1.05rem}
 .pl-rules ul{margin:6px 0 0;padding-left:1.1em;display:grid;gap:4px}
+/* Zinnen v0.7: het gezegde in beeld. Roze = gezegde (merk), lichtroze gestippeld = naamwoordelijk deel; boog = koppelen */
+.gr-w.gr-vast{cursor:default;background:transparent;border-color:transparent;padding:2px 4px;border-radius:0}
+.gr-w.gr-gz,.gr-w.gr-kw{border-bottom:4px solid var(--pl-violet);color:var(--pl-violet-deep);font-weight:600}
+.gr-w.gr-nd{border-bottom:4px dashed var(--pl-lilac);color:var(--pl-violet-deep);font-weight:600}
+.gr-w.gr-ow{border-bottom:2px solid var(--pl-mist)}
+.gr-zin-bouw{position:relative;padding-bottom:14px}
+.gr-zin-bouw.gr-met-boog{padding-top:20px}
+.gr-bogen{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+.gr-band{fill:none;stroke:var(--pl-violet);stroke-width:2;stroke-linejoin:round}
+.gr-boog{fill:none;stroke:var(--pl-ink-soft);stroke-width:2;stroke-dasharray:2 5;stroke-linecap:round}
+.gr-bouw{display:grid;gap:4px;font-size:.95rem;color:var(--pl-ink)}
+.gr-bouw b{font-weight:600;color:var(--pl-violet-deep)}
+.gr-eind{display:inline-flex;align-items:baseline}
+.gr-bouw-naam{color:var(--pl-ink-soft)}
+.gr-sw{display:inline-block;width:22px;height:0;margin-right:8px;border-bottom:4px solid var(--pl-violet);vertical-align:middle}
+.gr-sw.nd{border-bottom-style:dashed;border-bottom-color:var(--pl-lilac)}
+.gr-klaar{margin-top:4px}
+.gr-vb{display:grid;gap:2px;margin-top:10px;padding-top:8px;border-top:1px solid var(--pl-line)}
+.gr-vb-zin{font-family:var(--pl-display);font-size:1.15rem}
+.gr-w.gr-klein{font-size:1.15rem;padding:0 2px}
+.gr-vb-naam{font-size:.9rem;color:var(--pl-ink-soft)}
 
 /* De tuin v0.8: lagen (lucht, heuvels, wei, tuintjes, gras), licht volgens de klok, beweging die meegroeit (gd-t0 … gd-t3).
    Alleen transform, opacity en filter; bij "minder beweging" staat alles stil (core.css). Geen tekst. */
@@ -655,7 +676,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 </style>
 </head>
 <body>
-<!-- Leeratelier Leeratelier v0.9. Gebouwd op de Leeratelier-kern v0.9. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
+<!-- Leeratelier Leeratelier v0.9.1. Gebouwd op de Leeratelier-kern v0.9.1. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
 <main class="pl-app" id="pl-app"></main>
 
 
@@ -676,7 +697,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 (function(){
 "use strict";
 const PL = window.PL = {};
-PL.VERSION = "v0.9";
+PL.VERSION = "v0.9.1";
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -1014,6 +1035,7 @@ PL.start = async function(T, opts){
   if ((data.v || 2) < 3){ if (["werkwoorden", "europa", "spelling-een-of-twee", "zinnen"].includes(T.id)){ data.expl = {}; data.explPending = {}; } data.v = 3; }
   const lastReal = data.sessions[data.sessions.length - 1];
   const prevPlayed = lastReal ? lastReal.d : "";
+  if (T.migrate) T.migrate(data);   // een training die stenen toevoegt, zet de stand om (Zinnen v0.7)
   if (T.loadContent) T.loadContent(content.packs.filter(p => p.training === T.id));
   const S = {d: today(), t0: Date.now(), min: 0, rounds: 0, again: 0, steps: 0, first: 0, items: 0, forms: [], react: {leuk: 0, gewoon: 0, pittig: 0}, why: {}};
   let sessionAdded = false, form = data.lastForm || "A", lastRound = null, factShown = false, wheelRun = 0, wheelCount = 0, custom = null;
@@ -1284,7 +1306,7 @@ PL.start = async function(T, opts){
       const R = ruleItem && T.rules ? T.rules(ruleItem, ctx) : null;
       if (!on || !R){ bar.hidden = true; return; }
       if (!bar.hidden) return;
-      $("pl-rules").innerHTML = `<b>${esc(R.title)}</b><ul>${R.lines.map(l => `<li>${esc(l)}</li>`).join("")}</ul>`;
+      $("pl-rules").innerHTML = `<b>${esc(R.title)}</b><ul>${R.lines.map(l => `<li>${esc(l)}</li>`).join("")}</ul>${R.html || ""}`;   // html: een voorbeeld in beeld, gemaakt door de training
       $("pl-rules").hidden = true; $("pl-rule-btn").setAttribute("aria-expanded", "false"); $("pl-rule-btn").textContent = "Laat de regel zien";
       bar.hidden = false;
     };
@@ -3017,7 +3039,7 @@ const T = {
 PL.register(T);
 })();
 
-/* Training: Zinnen v0.4 — woordsoorten en zinsdelen uit zinsjablonen (oneindig materiaal, labels kloppen per constructie)
+/* Training: Zinnen v0.7 — woordsoorten en zinsdelen uit zinsjablonen (oneindig materiaal, labels kloppen per constructie)
    G1 zelfstandig naamwoord en lidwoord · G2 bijvoeglijk naamwoord en werkwoord · G3 voorzetsel, voegwoord, telwoord, voornaamwoord
    G4 onderwerp en persoonsvorm · G5 gezegde en lijdend voorwerp · G6 meewerkend voorwerp en bijwoordelijke bepaling · G7 bijzin, bedrijvend en lijdend */
 (function(){
@@ -3029,6 +3051,8 @@ const ZN = [ // zelfstandige naamwoorden: enkelvoud met lidwoord, meervoud
   ["de","tuin","tuinen",["in","achter"]],["de","keuken","keukens",["in"]],["de","school","scholen",["op","bij","achter"]],["het","park","parken",["in","bij"]],["de","klas","klassen",["in"]],["het","bos","bossen",["in","bij"]],["de","zolder","zolders",["op"]],["de","straat","straten",["op","in"]]
 ];
 const PERS = ZN.slice(0, 10), DING = ZN.slice(10, 22), PLEK = ZN.slice(22);
+const MENS = PERS.slice(2);                                                   // zonder hond en kat
+const DIER_OK = ["pakken", "zoeken", "vinden", "schoppen", "slapen", "rennen", "wachten"];   // wat een hond of kat kan doen (v0.7)
 const byName = n => ZN.find(z => z[1] === n);
 const OBJ = { pakken: ["bal","boek","appel","koek","taart","fiets","brief","tekening","sok","brood"], zoeken: ["bal","boek","fiets","brief","sok","spel","cadeau"], lezen: ["boek","brief"], tekenen: ["hond","kat","fiets","boek","bal"], vinden: ["bal","boek","fiets","brief","sok","cadeau","appel"], schoppen: ["bal","sok"], wassen: ["fiets","hond","kat","appel","sok"], bakken: ["taart","koek","brood","appel"],
   geven: ["boek","cadeau","brief","tekening","koek","taart","appel","bal"], sturen: ["brief","tekening","cadeau","boek"], brengen: ["boek","cadeau","brief","taart","koek","fiets","brood"], "laten zien": ["tekening","boek","brief","cadeau","spel","fiets"] };
@@ -3051,7 +3075,7 @@ const VGW_NEV = ["want","maar","en"];                                           
 const TW = [["twee","b"],["drie","b"],["vier","b"],["tien","b"],["veel","o"],["weinig","o"],["enkele","o"],["alle","o"]];
 
 const SOORT = {zn: "zelfstandig naamwoord", lw: "lidwoord", bn: "bijvoeglijk naamwoord", ww: "werkwoord", vz: "voorzetsel", vw: "voegwoord", vnw: "voornaamwoord", tw: "telwoord"};
-const DEEL = {O: "onderwerp", PV: "persoonsvorm", WG: "gezegde", LV: "lijdend voorwerp", MV: "meewerkend voorwerp", BWB: "bijwoordelijke bepaling"};
+const DEEL = {O: "onderwerp", PV: "persoonsvorm", WG: "gezegde", NWG: "gezegde", LV: "lijdend voorwerp", MV: "meewerkend voorwerp", BWB: "bijwoordelijke bepaling"};
 const tok = (w, s, d) => ({w, s, d: d || null});
 const tokx = (w, s, d) => Object.assign(tok(w, s, d), {x: 1});   // twijfelgeval (tijdwoord, bijwoord): nooit als vraag, nooit als goed of fout aangerekend
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
@@ -3066,7 +3090,7 @@ function np(role, pool, opts){  // naamwoordgroep: lidwoord (+ bn) + zn, of voor
   if (kind === "bez"){ const b = pick(BVNW); return {toks: [tok(b === "onze" && n[0] === "het" ? "ons" : b, "vnw", role), tok(n[1], "zn", role)], num: "sg", pers: "3", head: n[1]}; }   // ons kind, onze juf
   if (kind === "aanw"){ const a = n[0] === "het" ? pick(["dit", "dat"]) : pick(["deze", "die"]); return {toks: [tok(a, "vnw", role), tok(n[1], "zn", role)], num: "sg", pers: "3", head: n[1]}; }
   const lw = opts.indef ? "een" : n[0];
-  const toks = [tok(lw, "lw", role)]; if (kind === "bn"){ const b = pick(pool === PERS ? BN_P : BN_D); toks.push(tok(lw === "een" && n[0] === "het" ? b[0] : b[1], "bn", role)); } toks.push(tok(n[1], "zn", role));
+  const toks = [tok(lw, "lw", role)]; if (kind === "bn"){ const b = pick(pool === PERS || pool === MENS ? BN_P : BN_D); toks.push(tok(lw === "een" && n[0] === "het" ? b[0] : b[1], "bn", role)); } toks.push(tok(n[1], "zn", role));
   return {toks, num: "sg", pers: "3", head: n[1]};
 }
 function bwb(kind, tense){
@@ -3081,16 +3105,17 @@ function sentence(opts){
   const tense = opts.tense || pick(["tt", "tt", "vt"]);
   const vpool = opts.vsoort ? WW.filter(v => v[6] === opts.vsoort) : WW;
   const v = pick(vpool);
-  const S = np("O", PERS, {subject: true, pron: opts.pron, kind: opts.skind});
+  const S = np("O", DIER_OK.includes(v[0]) ? PERS : MENS, {subject: true, pron: opts.pron, kind: opts.skind});
   const parts = [];
-  const pv = pvForm(v, S.num, tense, S.pers);
+  const bw = opts.bwb === false ? [] : bwb(opts.bwbKind, tense);
+  const front = opts.front != null ? opts.front : (bw.length && bw[0].d === "BWB" && bw[0].s !== "bn" && Math.random() < .35);
+  // jij achter de persoonsvorm: geen t (vandaag pak jij)
+  const pv = front && bw.length && S.pers === "2" && tense === "tt" ? v[7] : pvForm(v, S.num, tense, S.pers);
   const pvToks = pv.split(" ").map((w, i) => tok(w, "ww", i === 0 ? "PV" : "WG"));
   let obj = null, mv = null;
   const opool = (OBJ[v[0]] || []).map(byName).filter(Boolean);
   if (v[6] === "t") obj = np("LV", opool, {indef: Math.random() < .4, kind: opts.okind});
   if (v[6] === "m"){ mv = np("MV", PERS, {kind: pick(["lw", "bez", "aanw"])}); obj = np("LV", opool, {indef: true, kind: "lw"}); }
-  const bw = opts.bwb === false ? [] : bwb(opts.bwbKind, tense);
-  const front = opts.front != null ? opts.front : (bw.length && bw[0].d === "BWB" && bw[0].s !== "bn" && Math.random() < .35);
   // volgorde: [BWB] PV O ... | O PV ...
   // woordvolgorde (v0.9): tijd en hoe direct na de persoonsvorm (de jongen pakt snel de bal), een plek achteraan (… in de tuin)
   const plekAchter = bw.length && bw[0].s === "vz";
@@ -3128,13 +3153,77 @@ function lijdend(){  // bedrijvend: O pv LV → lijdend: LV wordt door O vd
   return {bedr, lijd, s};
 }
 
+/* ---------- het gezegde (v0.7) ----------
+   Werkwoordelijk gezegde (WWG): alle werkwoorden samen, ook als ze uit elkaar staan, en "aan het".
+   Naamwoordelijk gezegde (NWG): koppelwerkwoord + naamwoordelijk deel (hoe of wat het onderwerp is of wordt).
+   Tokens: d "PV" (persoonsvorm), "WG" (andere werkwoorden), "ND" (naamwoordelijk deel). Alle vormen met de hand
+   uitgeschreven; tests/generatoren.js controleert elke vorm tegen een eigen tabel. */
+const VORM = {   // [ik, jij, hij/zij/het, meervoud] tegenwoordige tijd · [enkelvoud, meervoud] verleden tijd
+  hebben: {tt: ["heb", "hebt", "heeft", "hebben"], vt: ["had", "hadden"]},
+  zijn: {tt: ["ben", "bent", "is", "zijn"], vt: ["was", "waren"]},
+  worden: {tt: ["word", "wordt", "wordt", "worden"], vt: ["werd", "werden"]},
+  blijven: {tt: ["blijf", "blijft", "blijft", "blijven"], vt: ["bleef", "bleven"]},
+  lijken: {tt: ["lijk", "lijkt", "lijkt", "lijken"], vt: ["leek", "leken"]},
+  willen: {tt: ["wil", "wilt", "wil", "willen"], vt: ["wilde", "wilden"]},
+  moeten: {tt: ["moet", "moet", "moet", "moeten"], vt: ["moest", "moesten"]},
+  kunnen: {tt: ["kan", "kunt", "kan", "kunnen"], vt: ["kon", "konden"]}
+};
+const vorm = (ww, S, tense) => { const f = VORM[ww]; if (tense === "vt") return f.vt[S.num === "pl" ? 1 : 0]; return f.tt[S.num === "pl" ? 3 : S.pers === "1" ? 0 : S.pers === "2" ? 1 : 2]; };
+const KOPPEL = ["zijn", "worden", "blijven", "lijken"];
+const ND_PERS = ["moe", "blij", "vrolijk", "ziek", "boos", "stil", "lief", "nat"];
+const ND_DING = ["nieuw", "oud", "mooi", "vies", "groot", "klein", "nat"], ND_ETEN = ["lekker", "warm", "koud"], ETEN = ["taart", "koek", "brood", "appel"];
+const ND_BEROEP = ["juf", "meester", "kok", "bakker"];
+const RICHTING = [["naar", "huis"], ["naar", "school"], ["naar", "het", "park"], ["naar", "de", "winkel"]];
+const ZIJN_VD = [["lopen", "gelopen"], ["fietsen", "gefietst"], ["rennen", "gerend"], ["komen", "gekomen"]];
+const MODAAL = ["willen", "moeten", "kunnen"];
+function gezegde(sub){
+  const tense = pick(["tt", "tt", "vt"]);
+  const lw = (n, role) => tokx(n, "zn", role);
+  if (sub === "nwg"){
+    const ding = Math.random() < .3, beroep = !ding && Math.random() < .2;
+    const S = ding ? np("O", DING, {subject: true, kind: pick(["lw", "lw", "bez", "aanw"])}) : np("O", beroep ? MENS : PERS, {subject: true, pron: true, kind: beroep ? pick(["lw", "bez"]) : undefined});
+    if (beroep && S.num === "pl") return gezegde(sub);   // wij worden bakker: liever niet
+    const kw = beroep ? pick(["worden", "zijn"]) : pick(KOPPEL);
+    const head = S.head; const nd = beroep ? pick(ND_BEROEP) : ding ? pick(ND_DING.concat(ETEN.includes(head) ? ND_ETEN : [])) : pick(ND_PERS);
+    const toks = [...S.toks, tok(vorm(kw, S, tense), "ww", "PV"), tokx(nd, beroep ? "zn" : "bn", "ND")];
+    return {toks, sub, type: "nwg", kw, nd, ow: S.toks.map(t => t.w).join(" "), beroep, tense};
+  }
+  if (sub === "zijn"){
+    const S = np("O", PERS.filter(z => !["hond", "kat"].includes(z[1])), {subject: true, pron: true}); const [inf, vd] = pick(ZIJN_VD), r = pick(RICHTING);
+    return {toks: [...S.toks, tok(vorm("zijn", S, tense), "ww", "PV"), ...r.map(w => tokx(w, w === "naar" ? "vz" : ["de", "het"].includes(w) ? "lw" : "zn", "BWB")), tok(vd, "ww", "WG")], sub, type: "wwg", inf, vd, tense};
+  }
+  const v = pick(WW.filter(x => sub !== "aanhet" || (x[6] !== "m" && x[0] !== "vinden")));   // vinden gebeurt in één tel: niet "aan het vinden"
+  const S = np("O", DIER_OK.includes(v[0]) ? PERS : MENS, {subject: true, pron: true});
+  const opool = (OBJ[v[0]] || []).map(byName).filter(Boolean);
+  const mv = v[6] === "m" ? np("MV", PERS, {kind: pick(["lw", "bez"])}).toks : [];
+  const obj = v[6] === "t" || v[6] === "m" ? np("LV", opool, {indef: v[6] === "m" || Math.random() < .4, kind: "lw"}).toks : [];
+  const inf = v[0].split(" ");   // laten zien = twee woorden
+  if (sub === "vtt"){
+    const vd = v[5].split(" ");
+    return {toks: [...S.toks, tok(vorm("hebben", S, tense), "ww", "PV"), ...mv, ...obj, ...vd.map(w => tok(w, "ww", "WG"))], sub, type: "wwg", inf: v[0], vd: v[5], tense};
+  }
+  if (sub === "modaal"){
+    const m = pick(MODAAL);
+    return {toks: [...S.toks, tok(vorm(m, S, tense), "ww", "PV"), ...mv, ...obj, ...inf.map(w => tok(w, "ww", "WG"))], sub, type: "wwg", inf: v[0], modaal: m, tense};
+  }
+  if (sub === "aanhet"){   // is (de taart) aan het bakken
+    return {toks: [...S.toks, tok(vorm("zijn", S, tense), "ww", "PV"), ...obj, tokx("aan", "vz", "WG"), tokx("het", "lw", "WG"), ...inf.map(w => tok(w, "ww", "WG"))], sub, type: "wwg", inf: v[0], tense};
+  }
+  // simpel of uit elkaar (liet … zien): de gewone zinsbouw
+  const s0 = sentence({tense, vsoort: sub === "split" ? "m" : pick(["t", "m", "i"]), bwb: Math.random() < .5 ? undefined : false, front: false});
+  if (sub === "split" && s0.v[0] !== "laten zien") return gezegde(sub);
+  return {toks: s0.toks, sub: s0.v[0] === "laten zien" ? "split" : "simpel", type: "wwg", inf: s0.v[0], tense: s0.tense};
+}
+const gIdx = g => g.toks.map((t, i) => [t, i]).filter(([t]) => t.d === "PV" || t.d === "WG" || t.d === "ND").map(([, i]) => i);
+
 /* ---------- stenen ---------- */
 const STONES = [
   {id: "G1", name: "zelfstandig naamwoord en lidwoord", ask: ["zn", "lw"]},
   {id: "G2", requires: ["G1"], name: "bijvoeglijk naamwoord en werkwoord", ask: ["bn", "ww"]},
   {id: "G3", requires: ["G2"], name: "voorzetsel, voegwoord, telwoord en voornaamwoord", ask: ["vz", "vw", "tw", "vnw"]},
   {id: "G4", requires: ["G2"], name: "onderwerp en persoonsvorm", deel: ["O", "PV"]},
-  {id: "G5", requires: ["G4"], name: "gezegde en lijdend voorwerp", deel: ["WG", "LV"]},
+  {id: "G5", requires: ["G4"], name: "gezegde en lijdend voorwerp", deel: ["WG", "WG", "LV"]},
+  {id: "G5b", requires: ["G5"], name: "werkwoordelijk en naamwoordelijk gezegde", deel: ["NWG", "GS"]},
   {id: "G6", requires: ["G5"], name: "meewerkend voorwerp en bijwoordelijke bepaling", deel: ["MV", "BWB"]},
   {id: "G7", requires: ["G6"], name: "bijzin, bedrijvend en lijdend", zin: true}
 ];
@@ -3158,6 +3247,11 @@ function genFor(st, ctx){
   }
   if (st.deel){
     const want = pick(st.deel);
+    if (want === "WG"){ const g = gezegde(pick(["simpel", "split", "vtt", "vtt", "modaal", "aanhet", "zijn"])); const idxs = gIdx(g); return {key: `d:WG:${g.sub}:${g.inf}:${seq % 5}`, kind: "deel", want, toks: g.toks, idxs, g, label: `${idxs.map(i => g.toks[i].w).join(" ")} (gezegde)`}; }
+    if (want === "NWG" || want === "GS"){
+      const g = gezegde(want === "NWG" ? "nwg" : pick(["nwg", "nwg", "zijn", "aanhet"])); const idxs = gIdx(g);
+      return {key: `d:${want}:${g.sub}:${g.kw || g.inf}:${seq % 5}`, kind: want === "GS" ? "gsoort" : "deel", want, toks: g.toks, idxs, g, ans: g.type, label: `${idxs.map(i => g.toks[i].w).join(" ")} (${g.type === "nwg" ? "naamwoordelijk" : "werkwoordelijk"} gezegde)`};
+    }
     for (let i = 0; i < 20; i++){
       const s = want === "MV" ? sentence({vsoort: "m"}) : want === "LV" ? sentence({vsoort: pick(["t", "m"])}) : want === "WG" ? sentence({tense: "vt", vsoort: pick(["t", "m"])}) : sentence({});
       let idxs = s.toks.map((t, i) => [t, i]).filter(([t]) => t.d === want || (want === "WG" && (t.d === "PV" || t.d === "WG"))).map(([, i]) => i);
@@ -3170,8 +3264,8 @@ function genFor(st, ctx){
   if (r < .7){ const l = lijdend(); const vorm = pick(["bedr", "lijd"]); return {key: `z:vorm:${l.s.v[0]}:${vorm}`, kind: "vorm", zin: vorm === "bedr" ? l.bedr : l.lijd, ans: vorm === "bedr" ? "bedrijvend" : "lijdend", label: (vorm === "bedr" ? "bedrijvend: " : "lijdend: ") + (vorm === "bedr" ? l.bedr : l.lijd)}; }
   const l = lijdend(); return {key: `z:maak:${l.s.v[0]}:${seq % 5}`, kind: "maaklijdend", bedr: l.bedr, lijd: l.lijd, fout: l.lijd.replace(" door ", " met "), label: "lijdend maken: " + l.bedr};
 }
-function keyLabel(k){ const p = k.split(":"); return p[0] === "s" ? `${p[2]} (${SOORT[p[1]]})` : p[0] === "d" ? DEEL[p[1]] + " bij " + p[2] : p[1] === "bz" ? "bijzin met " + p[2] : p[1] === "vorm" ? "bedrijvend of lijdend" : "lijdend maken"; }
-const stoneOf = k => { const p = k.split(":"); if (p[0] === "s") return ["zn", "lw"].includes(p[1]) ? "G1" : ["bn", "ww"].includes(p[1]) ? "G2" : "G3"; if (p[0] === "d") return ["O", "PV"].includes(p[1]) ? "G4" : ["WG", "LV"].includes(p[1]) ? "G5" : "G6"; return "G7"; };
+function keyLabel(k){ const p = k.split(":"); return p[0] === "s" ? `${p[2]} (${SOORT[p[1]]})` : p[0] === "d" ? (DEEL[p[1]] || "soort gezegde") + " bij " + p[2] : p[1] === "bz" ? "bijzin met " + p[2] : p[1] === "vorm" ? "bedrijvend of lijdend" : "lijdend maken"; }
+const stoneOf = k => { const p = k.split(":"); if (p[0] === "s") return ["zn", "lw"].includes(p[1]) ? "G1" : ["bn", "ww"].includes(p[1]) ? "G2" : "G3"; if (p[0] === "d") return ["O", "PV"].includes(p[1]) ? "G4" : ["WG", "LV"].includes(p[1]) ? "G5" : ["NWG", "GS"].includes(p[1]) ? "G5b" : "G6"; return "G7"; };
 
 /* ---------- vragen en tussenstappen ---------- */
 const VRAAG = {
@@ -3180,7 +3274,7 @@ const VRAAG = {
   vz: "Welk woord kun je voor 'de kast' zetten? Op de kast, onder de kast…", vw: "Welk woord plakt twee stukken zin aan elkaar?",
   tw: "Welk woord zegt hoeveel?", vnw: "Welk woord wijst naar iemand of iets zonder de naam te noemen (ik, hij, mijn, deze, welke)?",
   O: "Wie of wat + persoonsvorm? Het antwoord is het onderwerp.", PV: "Zet de zin in een andere tijd. Het woord dat verandert is de persoonsvorm.",
-  WG: "Alle werkwoorden samen zijn het gezegde.", LV: "Wie of wat + gezegde + onderwerp?", MV: "Aan wie of voor wie + gezegde + onderwerp + lijdend voorwerp?", BWB: "Wanneer, waar of hoe gebeurt het?"
+  WG: "Zoek eerst de persoonsvorm, dan de andere werkwoorden. Samen zijn ze het gezegde.", NWG: "Zoek de persoonsvorm. Zegt het stuk erna hoe of wat het onderwerp is of wordt? Dat hoort er ook bij.", LV: "Wie of wat + gezegde + onderwerp?", MV: "Aan wie of voor wie + gezegde + onderwerp + lijdend voorwerp?", BWB: "Wanneer, waar of hoe gebeurt het?"
 };
 /* ---------- de regel van de vorm (knop "Laat de regel zien"): de regel en de test, nooit het antwoord ---------- */
 const REGELS = {
@@ -3194,20 +3288,80 @@ const REGELS = {
   vnw: {title: "Voornaamwoord", lines: ["Het staat in de plaats van een naam: ik, jij, hij, wij (persoonlijk).", "Het zegt van wie iets is: mijn, jouw, onze (bezittelijk).", "Het wijst iets aan: deze, die, dit, dat (aanwijzend)."]},
   O: {title: "Onderwerp", lines: ["Zoek eerst de persoonsvorm.", "Vraag: wie of wat + persoonsvorm? Het antwoord is het onderwerp.", "Ze horen bij elkaar: één (enkelvoud) → de hond loopt; meer (meervoud) → de honden lopen."]},
   PV: {title: "Persoonsvorm", lines: ["Zet de zin in een andere tijd (nu ↔ vroeger). Het werkwoord dat verandert, is de persoonsvorm.", "Of maak er een vraag van: de persoonsvorm komt dan vooraan.", "Hij past bij het onderwerp: één → de hond loopt, meer → de honden lopen."]},
-  WG: {title: "Gezegde", lines: ["Alle werkwoorden in de zin samen.", "Begin bij de persoonsvorm en zoek de andere werkwoorden erbij: liet … zien."]},
+  WG: {title: "Gezegde", lines: ["Het gezegde zegt wat er gebeurt. Het bestaat uit alle werkwoorden in de zin: Ben plukt bloemen → plukt.", "Staan de werkwoorden uit elkaar? Ze horen toch samen: De juf heeft de bal gepakt → heeft … gepakt.", "Ook 'aan het' hoort erbij: De kinderen zijn aan het spelen → zijn aan het spelen.", "Zoek eerst de persoonsvorm, dan de andere werkwoorden. Dit heet een werkwoordelijk gezegde."], html: () => voorbeeld("wwg")},
+  NWG: {title: "Twee soorten gezegde", lines: ["Werkwoordelijk gezegde: alleen werkwoorden. Het kind is naar huis gelopen → is … gelopen.", "Naamwoordelijk gezegde: een koppelwerkwoord + wat het onderwerp is of wordt. De hond is vrolijk → is vrolijk.", "Koppelwerkwoorden: zijn, worden, blijven, lijken, schijnen, blijken, heten.", "Test: staat er bij 'is' of 'wordt' nog een werkwoord (gelopen, spelen)? Dan is het een hulpwerkwoord: werkwoordelijk.", "Zegt het woord erna hoe of wat het onderwerp is (vrolijk, juf)? Dan naamwoordelijk."], html: () => voorbeeld("nwg") + voorbeeld("zijn")},
   LV: {title: "Lijdend voorwerp", lines: ["Vraag: wie of wat + gezegde + onderwerp?", "Voorbeeld: Ik lees een boek. Wat lees ik? Een boek."]},
   MV: {title: "Meewerkend voorwerp", lines: ["Vraag: aan wie of voor wie + gezegde + onderwerp + lijdend voorwerp?", "Je kunt er vaak aan of voor bij zetten: ik geef (aan) de juf een boek."]},
   BWB: {title: "Bijwoordelijke bepaling", lines: ["Het zegt wanneer, waar of hoe het gebeurt: gisteren, in de tuin, snel.", "Vraag: wanneer? waar? hoe?"]},
   bijzin: {title: "Bijzin", lines: ["Hij begint met een voegwoord: omdat, terwijl, als, nadat, hoewel.", "Het werkwoord staat achteraan.", "Een bijzin kan niet in zijn eentje een zin zijn."]},
   vorm: {title: "Bedrijvend en lijdend", lines: ["Bedrijvend: het onderwerp doet het zelf. De jongen pakt de bal.", "Lijdend: het onderwerp ondergaat het. Je ziet wordt of werd, en vaak door. De bal wordt door de jongen gepakt."]},
+
   maaklijdend: {title: "Lijdend maken", lines: ["Het lijdend voorwerp gaat vooraan.", "Dan wordt of werd.", "Dan door + wie het doet.", "Het voltooid deelwoord komt achteraan."]}
 };
+/* ---------- het gezegde in beeld (v0.7) ----------
+   Na het antwoord ziet ze de bouw: werkwoorden van het gezegde roze onderstreept, met een boogje eronder als ze uit elkaar
+   staan (ze horen samen); bij een naamwoordelijk gezegde is het koppelwerkwoord roze, het naamwoordelijk deel lichtroze
+   gestippeld, en een boog over de zin koppelt het onderwerp aan dat deel. Daaronder een rustige legenda in woorden. */
+const gStukken = (toks, idxs) => { const out = []; idxs.forEach(i => { const last = out[out.length - 1]; if (last && last[last.length - 1] === i - 1) last.push(i); else out.push([i]); }); return out; };
+const gTekst = (toks, idxs) => gStukken(toks, idxs).map(st => st.map(i => toks[i].w).join(" ")).join(" … ");
+function bouwKlassen(item){
+  const c = {}; if (!item.g) return c;
+  item.idxs.forEach(i => { const t = item.toks[i]; c[i] = item.g.type === "nwg" ? (t.d === "ND" ? "gr-nd" : "gr-kw") : "gr-gz"; });
+  if (item.g.type === "nwg") item.toks.forEach((t, i) => { if (t.d === "O") c[i] = "gr-ow"; });
+  return c;
+}
+function legenda(item){
+  const g = item.g, t = item.toks, pv = t.find(x => x.d === "PV").w;
+  if (g.type === "nwg") return `<div class="gr-bouw"><span><i class="gr-sw kw"></i>koppelwerkwoord: <b>${PL.esc(pv)}</b></span><span><i class="gr-sw nd"></i>naamwoordelijk deel: <b>${PL.esc(g.nd)}</b></span><span class="gr-bouw-naam">samen: het naamwoordelijk gezegde</span></div>`;
+  return `<div class="gr-bouw"><span><i class="gr-sw gz"></i><b>${PL.esc(gTekst(t, item.idxs))}</b></span><span class="gr-bouw-naam">alle werkwoorden samen: het werkwoordelijk gezegde</span></div>`;
+}
+/* boogjes: alleen tussen woorden op dezelfde regel (op een smal scherm kan een zin breken; dan blijven de strepen) */
+function bogen(Z, item){
+  const p = Z.querySelector(".gr-zin-bouw"); if (!p || !item.g) return;
+  const old = p.querySelector("svg.gr-bogen"); if (old) old.remove();
+  const pr = p.getBoundingClientRect(), r = i => { const b = p.querySelector(`[data-i="${i}"]`).getBoundingClientRect(); return {x: b.left - pr.left + b.width / 2, t: b.top - pr.top, b: b.bottom - pr.top, l: b.left - pr.left, rr: b.right - pr.left}; };
+  const paths = [];
+  if (item.g.type === "nwg"){
+    const ow = item.toks.map((t, i) => t.d === "O" ? i : -1).filter(i => i >= 0), nd = item.toks.findIndex(t => t.d === "ND");
+    if (ow.length && nd >= 0){ const a = r(ow[ow.length - 1]), b = r(nd); if (Math.abs(a.t - b.t) < 6){ const top = Math.max(2, a.t - 22); paths.push(`<path class="gr-boog" d="M${a.x} ${a.t - 2} C ${a.x} ${top}, ${b.x} ${top}, ${b.x} ${b.t - 2}"/>`); } }
+  } else {
+    const st = gStukken(item.toks, item.idxs);
+    for (let k = 0; k + 1 < st.length; k++){ const a = r(st[k][st[k].length - 1]), b = r(st[k + 1][0]); if (Math.abs(a.t - b.t) < 6){ const y = a.b + 10; paths.push(`<path class="gr-band" d="M${a.x} ${a.b + 3} L ${a.x} ${y} L ${b.x} ${y} L ${b.x} ${b.b + 3}"/>`); } }
+  }
+  if (paths.length) p.insertAdjacentHTML("beforeend", `<svg class="gr-bogen" aria-hidden="true" width="${pr.width}" height="${pr.height + 16}">${paths.join("")}</svg>`);
+}
+function toonBouw(Z, item){
+  const c = bouwKlassen(item);
+  Z.innerHTML = `<p class="gr-zin gr-zin-bouw${item.g.type === "nwg" ? " gr-met-boog" : ""}">${item.toks.map((t, i) => eind(item.toks, i, `<span class="gr-w gr-vast ${c[i] || ""}" data-i="${i}">${PL.esc(i === 0 ? cap(t.w) : t.w)}</span>${komma(item.toks, i)}`)).join(" ")}</p>${legenda(item)}`;
+  requestAnimationFrame(() => bogen(Z, item));
+  lastBouw = [Z, item];
+}
+let lastBouw = null;
+if (typeof window !== "undefined" && window.addEventListener) window.addEventListener("resize", () => { if (lastBouw && lastBouw[0].isConnected) bogen(lastBouw[0], lastBouw[1]); });
+/* een vast voorbeeld voor "Laat de regel zien" (zonder boog; de strepen en de legenda zeggen het) */
+function voorbeeld(soort){
+  const zin = soort === "nwg" ? [["De", ""], ["hond", "gr-ow"], ["is", "gr-kw"], ["vrolijk", "gr-nd"]] : soort === "zijn" ? [["Het", ""], ["kind", ""], ["is", "gr-gz"], ["naar", ""], ["huis", ""], ["gelopen", "gr-gz"]] : [["De", ""], ["juf", ""], ["heeft", "gr-gz"], ["de", ""], ["bal", ""], ["gepakt", "gr-gz"]];
+  const naam = soort === "nwg" ? "is vrolijk: naamwoordelijk gezegde" : soort === "zijn" ? "is … gelopen: werkwoordelijk gezegde" : "heeft … gepakt: werkwoordelijk gezegde";
+  return `<div class="gr-vb"><span class="gr-vb-zin">${zin.map(([w, c]) => `<span class="gr-w gr-vast gr-klein ${c}">${w}</span>`).join(" ")}.</span><span class="gr-vb-naam">${naam}</span></div>`;
+}
+function waaromG(item){
+  const g = item.g, t = item.toks, pv = t.find(x => x.d === "PV").w, alles = gTekst(t, item.idxs), los = gStukken(t, item.idxs).length > 1;
+  if (g.type === "nwg") return `'${pv}' is hier een koppelwerkwoord: het koppelt '${lc(g.ow)}' aan '${g.nd}'. '${cap(g.nd)}' zegt ${g.beroep ? "wat" : "hoe"} ${lc(g.ow)} ${pv}. Samen: ${pv} ${g.nd}, een naamwoordelijk gezegde.`;
+  if (g.sub === "zijn") return `Hier is '${pv}' een hulpwerkwoord: er staat nog een werkwoord bij, '${g.vd}'. Samen: ${alles}, een werkwoordelijk gezegde.`;
+  if (g.sub === "aanhet") return `'${pv}' + aan het + het hele werkwoord: dat hoort allemaal bij het gezegde. ${cap(alles)}: een werkwoordelijk gezegde.`;
+  if (g.sub === "vtt") return `'${pv}' (persoonsvorm) en '${g.vd}' (voltooid deelwoord) horen samen${los ? ", ook al staan ze uit elkaar" : ""}: ${alles}. Een werkwoordelijk gezegde.`;
+  if (g.sub === "modaal") return `'${pv}' en '${g.inf}' horen samen${los ? ", ook al staan ze uit elkaar" : ""}: ${alles}. Een werkwoordelijk gezegde.`;
+  if (los) return `'${alles}': de werkwoorden staan uit elkaar, maar horen samen. Een werkwoordelijk gezegde.`;
+  return `'${pv}' is het enige werkwoord, dus het gezegde is alleen '${pv}'. Een werkwoordelijk gezegde.`;
+}
+
 /* ---------- waarom: de regel voor precies deze zin (na het antwoord) ---------- */
 const lc = w => w.toLowerCase();
 const zinNum = toks => { const o = toks.filter(t => t.d === "O" && (!t.z || t.z === "hz")); if (!o.length) return null; if (o.some(t => t.s === "tw")) return "pl"; const f = lc(o[0].w); return ["wij", "jullie"].includes(f) ? "pl" : "sg"; };
 const groep = (toks, d) => toks.filter(t => t.d === d && (!t.z || t.z === "hz")).map(t => t.w).join(" ");
 const andereTijd = pv => { const v = WW.find(x => [x[1], x[2], x[3], x[4], x[7]].includes(pv)); if (!v) return null; const f = pv; return f === v[1] ? v[3] : f === v[2] ? v[4] : f === v[3] ? v[1] : f === v[4] ? v[2] : f === v[7] ? v[3] : null; };
 function waarom(item){
+  if (item.g) return waaromG(item);
   const toks = item.toks, num = zinNum(toks), pv = groep(toks, "PV"), O = groep(toks, "O"), WGrest = toks.filter(t => t.d === "WG" && (!t.z || t.z === "hz")).map(t => t.w).join(" ");
   if (item.kind === "soort"){
     const t = toks[item.idx], w = lc(t.w);
@@ -3231,6 +3385,7 @@ function waarom(item){
     const text = item.idxs.map(i => toks[i].w).join(" ");
     if (item.want === "O") return `Wie of wat ${pv}${WGrest ? " " + WGrest : ""}? ${cap(lc(text))}. ${num === "pl" ? "Meer dan één (meervoud), dus de persoonsvorm is ook meervoud" : "Eén (enkelvoud), dus de persoonsvorm is ook enkelvoud"}: '${pv}'.`;
     if (item.want === "PV"){ const at = andereTijd(lc(pv)); return `'${pv}' is de persoonsvorm${at ? `: in een andere tijd wordt het '${at}'` : ""}. Het onderwerp is '${lc(O)}', ${num === "pl" ? "meervoud" : "enkelvoud"}, en '${pv}' past daarbij.`; }
+    if (item.g) return waaromG(item);
     if (item.want === "WG") return `Alle werkwoorden samen: ${text}.`;
     if (item.want === "LV") return `Wie of wat ${pv} ${lc(O)}${WGrest ? " " + WGrest : ""}? ${cap(lc(text))}.`;
     if (item.want === "MV"){ const lv = groep(toks, "LV"); return `Aan wie ${pv} ${lc(O)} ${lv}${WGrest ? " " + WGrest : ""}? Aan ${lc(text)}.`; }
@@ -3238,26 +3393,28 @@ function waarom(item){
   }
   return "";
 }
+const eind = (toks, i, html) => i === toks.length - 1 ? `<span class="gr-eind">${html}<span class="gr-punt">.</span></span>` : html;   // de punt breekt nooit los
 const komma = (toks, i) => toks[i + 1] && toks[i + 1].s === "vw" && ["maar", "want"].includes(toks[i + 1].w) ? "," : "";   // komma vóór maar en want
 function sent(toks, hl, clickable){
-  return `<p class="gr-zin">${toks.map((t, i) => `<button type="button" class="gr-w${hl && hl.includes(i) ? " on" : ""}" data-i="${i}" ${clickable ? "" : "disabled"}>${PL.esc(i === 0 ? cap(t.w) : t.w)}</button>${komma(toks, i)}`).join(" ")}<span class="gr-punt">.</span></p>`;
+  return `<p class="gr-zin">${toks.map((t, i) => eind(toks, i, `<button type="button" class="gr-w${hl && hl.includes(i) ? " on" : ""}" data-i="${i}" ${clickable ? "" : "disabled"}>${PL.esc(i === 0 ? cap(t.w) : t.w)}</button>${komma(toks, i)}`)).join(" ")}</p>`;
 }
 const waitWord = box => new Promise(res => box.querySelectorAll(".gr-w:not([disabled])").forEach(b => { b.onclick = () => res(+b.dataset.i); }));
 const waitOpt = box => new Promise(res => box.querySelectorAll(".gr-opt:not([disabled])").forEach(b => { b.onclick = () => res(b.dataset.v); }));
 function other(label, pool, n){ return shuffle(pool.filter(x => x !== label)).slice(0, n); }
 
 const T = {
-  id: "zinnen", title: "Zinnen", version: "v0.6", noun: "zinnen", subject: "Grammatica", glyph: "O", tint: "#E2F3E9",
+  id: "zinnen", title: "Zinnen", version: "v0.7", noun: "zinnen", subject: "Grammatica", glyph: "O", tint: "#E2F3E9",
   practices: "woordsoorten en zinsdelen herkennen in een zin",
   helps: "werkwoordspelling, begrijpend lezen en zelf schrijven",
   stones: STONES, stoneOf, fromKey: () => null,   // zinnen zijn elke keer nieuw; herhaling loopt via de steen
   forms: { A: {name: "Tik aan in de zin", desc: "Je ziet de zin en tikt het woord of het stuk aan."}, B: {name: "Kies de naam", desc: "Een stuk licht op; jij kiest hoe het heet."} },
   aiFact: "Deze zinnen maakt de code uit bouwstenen, zodat elk label zeker klopt. AI zou zinnen mooier maken, maar soms een label verkeerd hebben.",
-  rules: item => REGELS[item.kind === "soort" || item.kind === "deel" ? item.want : item.kind],
-  _test: {waarom, REGELS},
+  rules: item => { const R = REGELS[item.kind === "soort" || item.kind === "deel" ? (item.want === "GS" ? "NWG" : item.want) : item.kind === "gsoort" ? "NWG" : item.kind]; return R && Object.assign({}, R, {html: R.html ? R.html() : ""}); },
+  migrate(data){ if ((data.zv || 1) < 2){ if (data.stage >= 6) data.stage++; data.zv = 2; } },   // v0.7: nieuwe steen G5b na G5
+  _test: {waarom, REGELS, VORM, gezegde},
   canTitle: "Dit herken ik in een zin",
   startText(ctx){ return ctx.data.sessions.length ? `We beginnen met wat al lukt. Daarna: ${STONES[ctx.stage - 1].name}.` : "Elke zin is gebouwd uit woordsoorten en zinsdelen. We beginnen bij het zelfstandig naamwoord en het lidwoord."; },
-  canDo(ctx){ const seen = {}; for (const k of Object.keys(ctx.data.items)) if (ctx.known(k)){ const p = k.split(":"); seen[p[0] === "s" ? SOORT[p[1]] : p[0] === "d" ? DEEL[p[1]] : p[1] === "bz" ? "bijzin" : "lijdende vorm"] = 1; } return Object.keys(seen); },
+  canDo(ctx){ const seen = {}; for (const k of Object.keys(ctx.data.items)) if (ctx.known(k)){ const p = k.split(":"); seen[p[0] === "s" ? SOORT[p[1]] : p[0] === "d" ? (p[1] === "NWG" || p[1] === "GS" ? "naamwoordelijk gezegde" : DEEL[p[1]]) : p[1] === "bz" ? "bijzin" : "lijdende vorm"] = 1; } return Object.keys(seen); },
   setup(ctx){ ctx.work.innerHTML = `<div class="pl-card gr-board"><div id="gr-zin"></div><div class="pl-row" id="gr-opts"></div><div class="gr-step" id="gr-step"></div></div>`; },
 
   async ask(item, ctx){
@@ -3265,6 +3422,62 @@ const T = {
     O.innerHTML = ""; S.innerHTML = "";
     let step = false, lastTap = null, revealed = false;
     const sup = ctx.support(item.stone);
+    if (item.kind === "gsoort" || (item.want === "NWG" && ctx.form === "B")){
+      // welk soort gezegde? Het gezegde licht op; de bouw (kleuren) komt pas na het antwoord, anders verraadt hij het
+      ctx.setAsk("Wat voor gezegde is", `'${gTekst(item.toks, item.idxs)}'?`);
+      if (sup === "vol") ctx.fb.note("Staat er bij 'is' of 'wordt' nog een werkwoord? Of zegt het stuk hoe of wat het onderwerp is?");
+      Z.innerHTML = sent(item.toks, item.idxs, false);
+      O.innerHTML = [["wwg", "werkwoordelijk gezegde"], ["nwg", "naamwoordelijk gezegde"]].map(([v, t]) => `<button type="button" class="pl-btn quiet gr-opt" data-v="${v}">${t}</button>`).join("");
+      const want = item.g.type, pv = item.toks.find(x => x.d === "PV").w;
+      let v = await waitOpt(O);
+      while (v !== want){
+        if (step){ revealed = true; O.querySelector(`[data-v="${v}"]`).disabled = true; }
+        step = true; ctx.fb.tried(v === "wwg" ? "werkwoordelijk" : "naamwoordelijk");
+        ctx.fb.step(want === "wwg" ? `Kijk wat er bij '${pv}' staat. Is dat nog een werkwoord? Dan is '${pv}' een hulpwerkwoord.` : `Staat er bij '${pv}' nog een werkwoord? Of zegt '${item.g.nd}' hoe of wat ${lc(item.g.ow)} ${pv}?`);
+        v = await waitOpt(O);
+      }
+      O.querySelectorAll(".gr-opt").forEach(b => { b.disabled = b.dataset.v !== want; });
+      toonBouw(Z, item);
+      ctx.fb.ok(waaromG(item));
+      return {first: !step, step, support: sup, revealed};
+    }
+    if (item.kind === "deel" && item.g && ctx.form === "A"){
+      // het hele gezegde aantikken: woorden aan en uit, dan Klaar (v0.7)
+      ctx.setAsk("Tik aan:", "het hele gezegde");
+      if (sup === "vol") ctx.fb.note(VRAAG[item.want]);
+      Z.innerHTML = sent(item.toks, [], true);
+      O.innerHTML = `<button type="button" class="pl-btn gr-klaar" id="gr-klaar">Klaar</button>`;
+      const sel = new Set(), target = new Set(item.idxs), pv = item.toks.find(x => x.d === "PV").w;
+      Z.querySelectorAll(".gr-w").forEach(b => b.addEventListener("click", () => { const i = +b.dataset.i; if (sel.has(i)) sel.delete(i); else sel.add(i); b.classList.toggle("on", sel.has(i)); }));
+      let miss = 0;
+      for (;;){
+        await new Promise(res => { document.getElementById("gr-klaar").onclick = res; });
+        if (!sel.size){ ctx.fb.note("Tik eerst de woorden aan die bij het gezegde horen."); continue; }
+        const wrong = [...sel].filter(i => !target.has(i)), missing = [...target].filter(i => !sel.has(i));
+        if (!wrong.length && !missing.length) break;
+        step = true; miss++;
+        ctx.fb.tried([...sel].sort((a, b) => a - b).map(i => item.toks[i].w).join(" "));
+        if (miss >= 3){
+          revealed = true; target.forEach(i => sel.add(i)); wrong.forEach(i => sel.delete(i));
+          Z.querySelectorAll(".gr-w").forEach(b => b.classList.toggle("on", sel.has(+b.dataset.i)));
+          ctx.fb.step(`Het gezegde is: ${gTekst(item.toks, item.idxs)}. Tik op Klaar; zo'n zin komt straks nog een keer.`); continue;
+        }
+        if (wrong.length){
+          const w = item.toks[wrong[0]];
+          wrong.forEach(i => { sel.delete(i); const b = Z.querySelector(`[data-i="${i}"]`); b.classList.remove("on"); b.disabled = true; });
+          ctx.fb.step(item.want === "NWG" ? `'${w.w}' hoort niet bij het gezegde. Het gezegde is hier '${pv}' en het stuk dat zegt hoe of wat ${lc(item.g.ow)} ${pv}.` : `'${w.w}' is geen werkwoord. Bij het gezegde horen alleen de werkwoorden${item.g.sub === "aanhet" ? " (en 'aan het')" : ""}.`);
+        } else {
+          const m = item.toks[missing[0]];
+          ctx.fb.step(item.want === "NWG" ? (m.d === "ND" ? `'${pv}' is hier een koppelwerkwoord. Welk woord zegt hoe of wat ${lc(item.g.ow)} ${pv}? Dat hoort er ook bij.` : `Het werkwoord hoort er ook bij. Zoek de persoonsvorm.`)
+            : missing.some(i => item.toks[i].w === "aan" && item.toks[i].d === "WG") ? "Bij 'is … aan het …' hoort 'aan het' ook bij het gezegde."
+            : m.d === "PV" ? "Zoek eerst de persoonsvorm: zet de zin in een andere tijd. Dat woord hoort er ook bij." : "Staat er nog een werkwoord in de zin? Alle werkwoorden horen bij het gezegde.");
+        }
+      }
+      document.getElementById("gr-klaar").remove();
+      toonBouw(Z, item);
+      ctx.fb.ok(waaromG(item));
+      return {first: !step, step, support: sup, revealed};
+    }
     if (item.kind === "soort" || item.kind === "deel"){
       const target = item.kind === "soort" ? [item.idx] : item.idxs;
       const name = item.kind === "soort" ? SOORT[item.want] : DEEL[item.want];
@@ -3273,7 +3486,7 @@ const T = {
       const okIdx = i => same.includes(i);
       if (ctx.form === "A"){
         // "het" belooft er één; staan er meer in de zin, dan "een" (C4)
-        ctx.setAsk("Tik aan:", `${same.length > 1 ? "een" : "het"} ${name}`);
+        ctx.setAsk("Tik aan:", `${item.kind === "soort" && same.length > 1 ? "een" : "het"} ${name}`);   // er is maar één onderwerp, één lijdend voorwerp
         if (sup === "vol") ctx.fb.note(VRAAG[item.want]);
         Z.innerHTML = sent(item.toks, [], true);
         let i = await waitWord(Z);
@@ -3289,13 +3502,14 @@ const T = {
       } else {
         ctx.setAsk("Wat is", item.kind === "soort" ? `'${item.toks[item.idx].w}'?` : `'${target.map(i => item.toks[i].w).join(" ")}'?`);
         Z.innerHTML = sent(item.toks, target, false);
-        const pool = item.kind === "soort" ? Object.keys(SOORT) : Object.keys(DEEL);
+        const pool = item.kind === "soort" ? Object.keys(SOORT) : ["O", "PV", "WG", "LV", "MV", "BWB"];
         const opts = shuffle([item.want].concat(other(item.want, pool, 3)));
         const nameOf = v => item.kind === "soort" ? SOORT[v] : DEEL[v];
         O.innerHTML = opts.map(v => `<button type="button" class="pl-btn quiet gr-opt" data-v="${v}">${PL.esc(nameOf(v))}</button>`).join("");
         let v = await waitOpt(O);
         while (v !== item.want){ step = true; O.querySelector(`[data-v="${v}"]`).disabled = true; ctx.fb.step(VRAAG[item.want]); v = await waitOpt(O); }
         O.querySelectorAll(".gr-opt").forEach(b => { b.disabled = b.dataset.v !== item.want; });
+        if (item.g){ toonBouw(Z, item); ctx.fb.ok(waaromG(item)); return {first: !step, step, support: sup, revealed}; }
       }
       const shown = item.kind === "soort" && lastTap != null ? [lastTap] : target;
       ctx.fb.ok(`${cap(shown.map(i => item.toks[i].w).join(" "))}: ${name}. ${waarom(item.kind === "soort" && lastTap != null ? Object.assign({}, item, {idx: lastTap}) : item)}`.trim());
