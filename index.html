@@ -268,6 +268,29 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 .pl-verder{float:right;margin:8px 0 0 12px;border:1.5px solid var(--pl-leaf);background:var(--pl-surface);color:var(--pl-ink);border-radius:var(--pl-r-pill);min-height:40px;padding:6px 16px;font:inherit;font-weight:600;cursor:pointer}
 .pl-rulebar.stil .pl-rulebtn{border-color:transparent;background:transparent;color:var(--pl-ink-soft);font-weight:500;min-height:36px;padding:4px 10px;font-size:.92rem}
 .pl-rulebar.stil .pl-rulebtn:hover{color:var(--pl-violet-deep);border-color:var(--pl-line)}
+/* De rekenmuur v0.6: plaatjes bij "Laat zien hoe het werkt" — roze = er al, lichtroze = erbij */
+.rk-vb{margin-top:10px;padding-top:10px;border-top:1px solid var(--pl-line);display:grid;gap:6px;justify-items:start}
+.rk-vb-strook{display:grid;gap:4px}
+.rk-vb-rij{display:grid;grid-template-columns:repeat(10,22px);gap:3px}
+.rk-vb-rij i,.rk-vb-rooster i,.rk-vb-groepen i{display:block;aspect-ratio:1;border-radius:50%;border:1.5px solid var(--pl-mist);background:var(--pl-surface)}
+.rk-vb-rij i.v,.rk-vb-rooster i.v,.rk-vb-groepen i{background:var(--pl-violet);border-color:var(--pl-violet)}
+.rk-vb-rij i.n,.rk-vb-rooster i.n{background:var(--pl-lilac);border-color:var(--pl-lilac)}
+.rk-vb-rooster{display:grid;gap:3px;width:min(100%,200px)}
+.rk-vb-groepen{display:flex;flex-wrap:wrap;gap:10px}
+.rk-vb-groepen span{display:grid;grid-auto-flow:column;gap:3px;padding:5px;border:1.5px dashed var(--pl-violet);border-radius:10px}
+.rk-vb-groepen i{width:14px}
+.rk-vb-lijn{width:min(100%,320px);height:auto;overflow:visible}
+.rk-vb-as,.rk-vb-tik{stroke:var(--pl-ink-soft);stroke-width:1.5}
+.rk-vb-boog{fill:none;stroke:var(--pl-violet);stroke-width:2}
+.rk-vb-lab{font:600 12px var(--pl-text,inherit);fill:var(--pl-violet-deep);text-anchor:middle}
+.rk-vb-getal{font:12px var(--pl-text,inherit);fill:var(--pl-ink);text-anchor:middle}
+.rk-vb-delen{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;width:min(100%,320px);border:1.5px solid var(--pl-violet);border-radius:8px;overflow:hidden}
+.rk-vb-delen span{padding:6px 2px;text-align:center;font-size:.9rem;border-right:1px solid var(--pl-lilac)}
+.rk-vb-delen span:last-child{border-right:0}
+.rk-vb-delen span.v{background:var(--pl-lilac);font-weight:600}
+.rk-vb-onder{margin:0;font-size:.85rem;color:var(--pl-ink-soft)}
+.rk-vb-volgorde{display:grid;gap:4px;font-family:var(--pl-display);font-size:1.15rem}
+.rk-vb-volgorde u{text-decoration:none;border-bottom:3px solid var(--pl-violet)}
 
 /* De tuin v0.8: lagen (lucht, heuvels, wei, tuintjes, gras), licht volgens de klok, beweging die meegroeit (gd-t0 … gd-t3).
    Alleen transform, opacity en filter; bij "minder beweging" staat alles stil (core.css). Geen tekst. */
@@ -681,7 +704,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 </style>
 </head>
 <body>
-<!-- Leeratelier Leeratelier v0.9.2. Gebouwd op de Leeratelier-kern v0.9.2. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
+<!-- Leeratelier Leeratelier v0.9.3. Gebouwd op de Leeratelier-kern v0.9.3. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
 <main class="pl-app" id="pl-app"></main>
 
 
@@ -702,7 +725,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 (function(){
 "use strict";
 const PL = window.PL = {};
-PL.VERSION = "v0.9.2";
+PL.VERSION = "v0.9.3";
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -1171,7 +1194,7 @@ PL.start = async function(T, opts){
          de motor laat zien wat hij begreep, wat hij kiest en waarom, en wat hij niet weet (aannames). Dan: klopt dit? --- */
   const nameOf = id => { const st = T.stones.find(x => x.id === id); return st ? st.name : id; };
   const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
-  function stoneState(st, i){ const g = ctx.green(st.id), seen = (data.stones[st.id] || {}).n > 0; const open = i <= data.stage - 1 || (st.requires || []).every(r => ctx.green(r)); const eerst = (st.requires || []).filter(r => !ctx.green(r)).map(nameOf); return {g, seen, open, label: g ? "gaat al vanzelf" : seen ? "ben je mee bezig" : open ? "nog nieuw" : "nog niet aan de beurt · komt na " + eerst.join(", "), eerst}; }
+  function stoneState(st, i){ const g = ctx.green(st.id), seen = (data.stones[st.id] || {}).n > 0; const open = i <= data.stage - 1 || (st.requires || []).every(r => ctx.green(r)); const eerstIds = (st.requires || []).filter(r => !ctx.green(r)), eerst = eerstIds.map(nameOf); return {g, seen, open, label: g ? "gaat al vanzelf" : seen ? "ben je mee bezig" : open ? "nog nieuw" : "nog niet aan de beurt · komt na " + eerst.join(", "), eerst, eerstIds}; }
   /* De beslisboom van het gesprek. Puur: (antwoorden tot nu toe) → volgende vraag óf het plan met drie denkregels.
      Regels die getest worden (t_tree): een vraag wordt alleen gesteld als er minstens twee antwoorden zijn; wat niet gevraagd
      wordt, staat in de denkregels; elk pad eindigt in een geldig plan (open steen, vorm A/B, 6 of 10 vragen, opwarmer ≠ steen). */
@@ -1186,12 +1209,22 @@ PL.start = async function(T, opts){
     const guessed = a.stoneId === "kies";
     let stoneId = guessed ? T.stones[data.stage - 1].id : a.stoneId;
     let st = byId(stoneId);
+    // v0.9.3: een steen die nog niet aan de beurt is: eerst vragen of ze hem wil proberen of de stap ervoor neemt.
+    // De stap ervoor is de eerste nog-niet-vanzelf-steen in de keten eronder die wél open is.
+    const stapErvoor = id => { const x = byId(id); for (const r of x.eerstIds || []){ const y = byId(r); if (y.open || y.seen) return r; const d = stapErvoor(r); if (d) return d; } return null; };
+    const ancestors = id => { const out = new Set(), walk = i => (T.stones[idx(i)].requires || (idx(i) > 0 ? [T.stones[idx(i) - 1].id] : [])).forEach(r => { if (!out.has(r)){ out.add(r); walk(r); } }); walk(id); return out; };
+    const laterChosen = !guessed && !st.open && !st.seen;
+    const ervoor = laterChosen ? stapErvoor(stoneId) : null;
+    if (laterChosen && ervoor && a.later == null) return {ask: {q: `${cap(nameOf(stoneId))} is nog niet aan de beurt. Wat wil je?`, key: "later", opts: [{v: "proberen", t: "Toch proberen", sub: "met alle hulp erbij"}, {v: "eerst", t: `Eerst ${nameOf(ervoor)}`, sub: (st.eerstIds || []).includes(ervoor) ? "de stap ervoor; daarna kom je hier vanzelf" : "daar begint de weg ernaartoe"}]}};
+    if (a.later === "eerst" && ervoor){ stoneId = ervoor; st = byId(stoneId); }
     // 2a. groene steen: herhalen of verder (alleen vragen als er een open volgende steen is)
     const next = T.stones[idx(stoneId) + 1]; const nextOpen = next && byId(next.id).open;
     if (!guessed && st.g && nextOpen && a.verder == null) return {ask: {q: `${cap(nameOf(stoneId))} gaat bij jou al vanzelf. Wat wil je?`, key: "verder", opts: [{v: "herhalen", t: "Herhalen", sub: "de basis komt altijd terug"}, {v: "verder", t: "Een stapje verder", sub: cap(nameOf(next.id))}]}};
     if (a.verder === "verder"){ stoneId = next.id; st = byId(stoneId); }
     // 2b. wat gaat al goed: alleen vragen als er iets te kiezen valt (gespeelde stenen vóór deze steen)
-    const warmOpts = played.filter(x => x.st.id !== stoneId && idx(x.st.id) < idx(stoneId)).slice(-4);
+    // alleen stenen waar deze op bouwt (de keten eronder), en die ze hier al speelde
+    const onder = ancestors(stoneId);
+    const warmOpts = played.filter(x => x.st.id !== stoneId && onder.has(x.st.id)).slice(-4);
     if (!guessed && warmOpts.length && a.warmId == null) return {ask: {q: "Wat gaat al goed?", key: "warmId", opts: warmOpts.map(x => ({v: x.st.id, t: cap(x.st.name), sub: x.label})).concat([{v: "niets", t: "Dat weet ik niet", sub: "dan kies ik iets wat vorige keer lukte"}])}};
     if (guessed) skipped.push("goedKies"); else if (!warmOpts.length) skipped.push("goedLeeg");
     // 3. hoe, 4. hoeveel
@@ -1202,15 +1235,18 @@ PL.start = async function(T, opts){
     const n = +a.n, f = a.form;
     const autoWarm = !warmId && warmOpts.length ? warmOpts[warmOpts.length - 1].st.id : null;
     const later = !guessed && !st.open && !st.seen;
-    const vraag = `Ik wil ${guessed ? "oefenen, kies jij maar wat" : nameOf(stoneId) + " oefenen"}${a.verder === "verder" ? " (een stapje verder)" : a.verder === "herhalen" ? " (herhalen)" : ""}${later ? ", ook al is het nog niet aan de beurt" : ""}. ${warmId ? cap(nameOf(warmId)) + " gaat al goed." : a.warmId === "niets" ? "Ik weet niet wat al goed gaat." : ""} Ik wil het doen met ${T.forms[f].name.toLowerCase()}, ${n === 6 ? "kort" : "wat langer"}.`.replace(/\s+/g, " ");
-    const begreep = `Je wilt ${guessed ? "oefenen en laat de keuze aan mij" : nameOf(stoneId)}. ${warmId ? `${cap(nameOf(warmId))} gaat al goed, zei je.` : a.warmId === "niets" ? "Wat al goed gaat, weet je zelf niet zeker." : ""} ${T.forms[f].name}, ${n} vragen.`.replace(/\s+/g, " ");
+    const vormZin = n => /^met /i.test(n) ? n.toLowerCase() : "met " + n.toLowerCase();   // "met het model", niet "met met het model"
+    const vraag = `Ik wil ${guessed ? "oefenen, kies jij maar wat" : a.later === "eerst" ? "eerst " + nameOf(stoneId) + " oefenen, de stap vóór " + nameOf(a.stoneId) : nameOf(stoneId) + " oefenen"}${a.verder === "verder" ? " (een stapje verder)" : a.verder === "herhalen" ? " (herhalen)" : ""}${later ? ", ook al is het nog niet aan de beurt" : ""}. ${warmId ? cap(nameOf(warmId)) + " gaat al goed." : a.warmId === "niets" ? "Ik weet niet wat al goed gaat." : ""} Ik wil het doen ${vormZin(T.forms[f].name)}, ${n === 6 ? "kort" : "wat langer"}.`.replace(/\s+/g, " ");
+    const begreep = `Je wilt ${guessed ? "oefenen en laat de keuze aan mij" : a.later === "eerst" ? nameOf(a.stoneId) + ", en eerst de stap ervoor: " + nameOf(stoneId) : nameOf(stoneId)}. ${warmId ? `${cap(nameOf(warmId))} gaat al goed, zei je.` : a.warmId === "niets" ? "Wat al goed gaat, weet je zelf niet zeker." : ""} ${T.forms[f].name}, ${n} vragen.`.replace(/\s+/g, " ");
     const warmSrc = warmId || autoWarm;
     // elke bewering hieronder volgt uit de stand (A3): eerste steen, gespeelde stenen, afgeronde rondes
     const firstStone = idx(stoneId) === 0, anyRound = data.sessions.length > 0;
     const kies = warmSrc ? `Ik begin met twee uit ${nameOf(warmSrc)}${warmId ? "" : ", want dat lukte vorige keer"}, als opwarmer. Dan ${n - 2} uit ${nameOf(stoneId)}. Wat niet in één keer lukt, komt drie vragen later terug.`
       : `Alles komt uit ${nameOf(stoneId)}; ${firstStone ? "er is geen steen vóór deze om mee op te warmen" : "de stenen ervoor heb je hier nog niet gespeeld, dus ik warm niet op"}. Wat niet in één keer lukt, komt drie vragen later terug.`;
-    const weetNiet = later ? `${cap(nameOf(stoneId))} is nog niet aan de beurt: het komt na ${st.eerst.join(" en ")}. Je wilt het proberen, en dat mag. Ik laat de hulp helemaal staan. Gaat het nog niet, dan is ${st.eerst[0]} de stap ervoor.`
-      : guessed ? `Je zei niet wát je wilt oefenen. Ik koos ${nameOf(stoneId)}, omdat dat de volgende stap is na wat al vanzelf gaat. Bedoel je iets anders, zeg het dan.`
+    const cur = T.stones[data.stage - 1], curNaVanzelf = (cur.requires || (idx(cur.id) > 0 ? [T.stones[idx(cur.id) - 1].id] : [])).every(r => ctx.green(r));
+    const weetNiet = a.later === "eerst" ? `Je koos eerst ${nameOf(stoneId)}, de stap ervoor. Gaat dat vanzelf, dan ligt ${nameOf(a.stoneId)} klaar.`
+      : later ? `${cap(nameOf(stoneId))} is nog niet aan de beurt: het komt na ${st.eerst.join(" en ")}. Je wilt het proberen, en dat mag. Ik laat de hulp helemaal staan. ${(() => { const e = stapErvoor(stoneId); return e ? `Gaat het nog niet, dan is ${nameOf(e)} een goed begin.` : ""; })()}`
+      : guessed ? `Je zei niet wát je wilt oefenen. Ik koos ${nameOf(stoneId)}, omdat ${curNaVanzelf ? "dat de volgende stap is na wat al vanzelf gaat" : "je daar nu bent in deze training"}. Bedoel je iets anders, zeg het dan.`
       : skipped.includes("goedLeeg") ? (firstStone ? `Ik vroeg niet wat al goed gaat: er is geen steen vóór ${nameOf(stoneId)}.` : anyRound ? `Ik vroeg niet wat al goed gaat: de stenen vóór ${nameOf(stoneId)} heb je hier nog niet gespeeld.` : `Ik vroeg niet wat al goed gaat: je hebt hier nog geen ronde afgemaakt, dus dat weet ik nog niet.`) + (st.g ? ` ${cap(nameOf(stoneId))} gaat bij jou al vanzelf; herhalen is prima.` : !st.seen ? ` ${cap(nameOf(stoneId))} is nieuw; wat lastig is, merk ik aan je tussenstappen.` : ` Hoe het nu gaat, merk ik aan je tussenstappen.`)
       : st.g ? `${cap(nameOf(stoneId))} gaat bij jou al vanzelf. Herhalen is prima; de basis komt altijd terug.`
       : !st.seen ? `${cap(nameOf(stoneId))} is nieuw voor je. Ik weet nog niet wat daar lastig is; dat merk ik aan je tussenstappen.`
@@ -1310,7 +1346,7 @@ PL.start = async function(T, opts){
     // één schermindeling voor een ronde (B1/B2): een werkvlak van hooguit ~600 px in het midden; vraag, hulp en invoer samen in beeld
     screen.innerHTML = `<div class="pl-round" id="pl-round">
       <div class="pl-ask" aria-live="polite"><span class="pl-ask-lead" id="pl-ask-lead"></span><span class="pl-ask-main" id="pl-ask-main"></span></div>
-      <div class="pl-rulebar" id="pl-rulebar" hidden><button type="button" class="pl-rulebtn" id="pl-rule-btn" aria-expanded="false" aria-controls="pl-rules">Laat de regel zien</button><div class="pl-rules" id="pl-rules" hidden></div></div>
+      <div class="pl-rulebar" id="pl-rulebar" hidden><button type="button" class="pl-rulebtn" id="pl-rule-btn" aria-expanded="false" aria-controls="pl-rules">${esc(T.rulesLabel || "Laat de regel zien")}</button><div class="pl-rules" id="pl-rules" hidden></div></div>
       <div class="pl-dots" id="pl-dots" aria-hidden="true"></div>
       <div class="pl-fb" id="pl-fb" aria-live="polite"></div>
       <div id="pl-work"></div></div>`;
@@ -1327,12 +1363,12 @@ PL.start = async function(T, opts){
       bar.classList.toggle("stil", !prom);
       if (!fresh && !bar.hidden) return;
       $("pl-rules").innerHTML = `<b>${esc(R.title)}</b><ul>${R.lines.map(l => `<li>${esc(l)}</li>`).join("")}</ul>${R.html || ""}`;   // html: een voorbeeld in beeld, gemaakt door de training
-      $("pl-rules").hidden = true; $("pl-rule-btn").setAttribute("aria-expanded", "false"); $("pl-rule-btn").textContent = "Laat de regel zien";
+      $("pl-rules").hidden = true; $("pl-rule-btn").setAttribute("aria-expanded", "false"); $("pl-rule-btn").textContent = T.rulesLabel || "Laat de regel zien";
       bar.hidden = false;
     };
     $("pl-rule-btn").addEventListener("click", () => {
       const p = $("pl-rules"), open = p.hidden; p.hidden = !open;
-      $("pl-rule-btn").setAttribute("aria-expanded", String(open)); $("pl-rule-btn").textContent = open ? "Regel wegleggen" : "Laat de regel zien";
+      $("pl-rule-btn").setAttribute("aria-expanded", String(open)); $("pl-rule-btn").textContent = open ? (T.rulesLabel ? "Wegleggen" : "Regel wegleggen") : (T.rulesLabel || "Laat de regel zien");
       if (open && !ruleSeen && ruleItem){ ruleSeen = true; res.rules = (res.rules || 0) + 1; log({rules: 1, k: ruleItem.key, st: ruleItem.stone}); }
     });
     const adjNote = roundAdj ? ({veel: "Ik begin met meer uit wat al lukt.", snel: "Ik doe het rustiger: de hulp blijft langer staan.", lang: "Een kortere ronde nu. Kort is ook trainen.", uitleg: `Bij een tussenstap leg ik het nu uit met ${ctx.modeName(roundAdj.mode) || "een andere manier"}.`})[roundAdj.kind] : "";
@@ -2181,11 +2217,51 @@ async function stepsVolgorde(ctx, it){
   ctx.fb.clear(); clearModel(); trail([]);
 }
 
+/* ---------- "Laat zien hoe het werkt" (v0.6): per soort som een stukje context, de aanpak in stappen en een plaatje.
+   Het voorbeeld is nooit de som die nu gevraagd wordt (er zijn steeds twee voorbeelden; we nemen het andere).
+   Aanpakken uit de gangbare rekendidactiek: aanvullen tot 10, splitsen, rijgen op de getallenlijn, sprongen van 10,
+   tafels via een bekende tafel (5 × en één rij meer), omdraaien, delen als "hoe vaak past het", 10% en 1%,
+   een breuk als eerst delen door de noemer en dan keer de teller, en de bewerkingsvolgorde. */
+const kc = n => String(n).replace(".", ",");
+function strook(cells){   // cells: lijst van "v" (er al), "n" (erbij), "" (leeg); per tien een rij
+  const rows = []; for (let i = 0; i < cells.length; i += 10) rows.push(cells.slice(i, i + 10));
+  return `<div class="rk-vb-strook">${rows.map(r => `<div class="rk-vb-rij">${r.map(c => `<i class="${c}"></i>`).join("")}</div>`).join("")}</div>`;
+}
+function lijn(from, to, jumps, marks, fmt){   // getallenlijn met boogjes; jumps: [van, naar, label]
+  fmt = fmt || (x => String(x)); const W = 300, L = 14, R = W - 14, y = 52, X = v => L + (v - from) / (to - from) * (R - L);
+  const arcs = jumps.map(([a, b, lab]) => { const xa = X(a), xb = X(b), h = Math.min(30, Math.abs(xb - xa) * .6 + 8); return `<path d="M${xa} ${y - 2} Q ${(xa + xb) / 2} ${y - 2 - h * 1.6} ${xb} ${y - 2}" class="rk-vb-boog"/><text x="${(xa + xb) / 2}" y="${y - 6 - h * .8}" class="rk-vb-lab">${lab}</text>`; }).join("");
+  const ticks = marks.map(v => `<line x1="${X(v)}" y1="${y - 5}" x2="${X(v)}" y2="${y + 5}" class="rk-vb-tik"/><text x="${X(v)}" y="${y + 20}" class="rk-vb-getal">${fmt(v)}</text>`).join("");
+  return `<svg class="rk-vb-lijn" viewBox="0 0 ${W} 80" role="img" aria-label="getallenlijn"><line x1="${L}" y1="${y}" x2="${R}" y2="${y}" class="rk-vb-as"/>${ticks}${arcs}</svg>`;
+}
+function rooster(rows, cols, nieuw){ return `<div class="rk-vb-rooster" style="grid-template-columns:repeat(${cols},1fr)">${Array.from({length: rows * cols}, (_, i) => `<i class="${Math.floor(i / cols) >= rows - nieuw ? "n" : "v"}"></i>`).join("")}</div>`; }
+function delen(n, parts, take, lab){ return `<div class="rk-vb-delen">${Array.from({length: parts}, (_, i) => `<span class="${i < take ? "v" : ""}">${lab}</span>`).join("")}</div><p class="rk-vb-onder">${kc(n)} in ${parts} gelijke stukken</p>`; }
+let ALT = false;
+const kies2 = (it, a, b, same) => same(it, a) || ALT ? b : a;   // ALT: het eerste voorbeeld noemt (een stuk van) het antwoord
+const HOE = {
+  m: it => { const a = kies2(it, 7, 6, (x, v) => x.a === v); return {title: "Samen 10", lines: [`Een doos voor tien eieren, met er ${a} in. Hoeveel passen er nog bij?`, "Kijk hoeveel er al is, en tel de lege vakjes tot 10.", `${a} + ${10 - a} = 10. Ken je ${a}, dan ken je ook ${10 - a}.`, "Samen 10 komt overal terug: bij de brug over 10 en bij geld."], html: strook(Array.from({length: 10}, (_, i) => i < a ? "v" : "n"))}; },
+  s: it => { const [n, a] = kies2(it, [8, 5], [9, 6], (x, v) => x.a === v[0] && x.b === v[1]); return {title: "Splitsen", lines: [`${n} knikkers in twee bakjes: in het ene bakje ${a}. Hoeveel in het andere?`, "Een getal kun je in twee stukken knippen. Samen zijn ze weer het hele getal.", `${n} = ${a} + ${n - a}.`], html: strook(Array.from({length: 10}, (_, i) => i < a ? "v" : i < n ? "n" : ""))}; },
+  j: it => { const [a, b] = kies2(it, [34, 20], [52, 30], (x, v) => x.a === v[0] && Math.abs(x.b) === v[1]); return {title: "Sprongen van 10", lines: [`Je hebt ${a} euro en krijgt er ${b / 10} tientjes bij.`, `Bij + ${b} spring je ${b / 10} keer 10 verder: ${Array.from({length: b / 10 + 1}, (_, i) => a + i * 10).join(" → ")}.`, `De ${a % 10} achteraan blijft hetzelfde; alleen de tientallen veranderen.`, "Bij min spring je terug, ook met sprongen van 10."], html: lijn(Math.floor(a / 10) * 10, Math.floor(a / 10) * 10 + b + 20, Array.from({length: b / 10}, (_, i) => [a + i * 10, a + (i + 1) * 10, "+10"]), Array.from({length: b / 10 + 1}, (_, i) => a + i * 10))}; },
+  g: it => { const [a, b] = kies2(it, [8, 5], [7, 6], (x, v) => x.a === v[0] && x.b === v[1]); const r = 10 - a; return {title: "De brug over 10", lines: [`Je hebt ${a} knikkers en krijgt er ${b} bij.`, `Eerst aanvullen tot 10: ${a} + ${r} = 10.`, `Dan de rest erbij: 10 + ${b - r} = ${a + b}.`, `${a} + ${b} = ${a} + ${r} + ${b - r}. De ${b} knip je in ${r} en ${b - r}.`], html: strook(Array.from({length: 20}, (_, i) => i < a ? "v" : i < a + b ? "n" : ""))}; },
+  t: it => { const [a, b] = kies2(it, [13, 5], [15, 7], (x, v) => x.a === v[0] && x.b === v[1]); const r = a - 10; return {title: "Terug over 10", lines: [`Er liggen ${a} koekjes; je eet er ${b} op.`, `Eerst terug naar 10: ${a} − ${r} = 10.`, `Dan de rest eraf: 10 − ${b - r} = ${a - b}.`, `${a} − ${b} = ${a} − ${r} − ${b - r}.`], html: lijn(a - b - 2, a + 1, [[a, 10, "−" + r], [10, a - b, "−" + (b - r)]], [a - b, 10, a])}; },
+  h: it => { const [a, b] = kies2(it, [47, 8], [36, 7], (x, v) => x.a === v[0] && x.b === v[1]); const t = Math.ceil(a / 10) * 10, r = t - a; return {title: "De brug over een tiental", lines: [`In de bus zitten ${a} mensen; er stappen er ${b} in.`, `Eerst naar het volle tiental: ${a} + ${r} = ${t}.`, `Dan de rest: ${t} + ${b - r} = ${a + b}.`, "Net als de brug over 10, maar nu bij een ander tiental."], html: lijn(a - 2, a + b + 2, [[a, t, "+" + r], [t, a + b, "+" + (b - r)]], [a, t, a + b])}; },
+  k: it => { const [a, b] = kies2(it, [52, 7], [63, 8], (x, v) => x.a === v[0] && x.b === v[1]); const t = Math.floor(a / 10) * 10, r = a - t; return {title: "Terug over een tiental", lines: [`Je hebt ${a} stickers en geeft er ${b} weg.`, `Eerst terug naar het tiental: ${a} − ${r} = ${t}.`, `Dan de rest eraf: ${t} − ${b - r} = ${a - b}.`], html: lijn(a - b - 2, a + 2, [[a, t, "−" + r], [t, a - b, "−" + (b - r)]], [a - b, t, a])}; },
+  x: it => { const groot = it.a >= 6 && it.a <= 9; if (groot){ const [t, n] = kies2(it, [7, 6], [8, 6], (x, v) => x.a === v[0] && x.b === v[1]); return {title: "Tafels van 6 tot 9", lines: [`${n} doosjes met elk ${t} stiften.`, `${n} × ${t} is ${n} rijen van ${t}. Ken je 5 × ${t} = ${5 * t}? Dan is ${n} × ${t} één rij meer: ${5 * t} + ${t}.`, `Omdraaien mag: ${n} × ${t} = ${t} × ${n}.`, "Zo bouw je een nieuwe tafel uit een tafel die je al kent."], html: rooster(n, t, 1)}; }
+    const [t, n] = kies2(it, [4, 3], [5, 3], (x, v) => x.a === v[0] && x.b === v[1]); return {title: "Tafels", lines: [`${n} zakjes met elk ${t} knikkers.`, `${n} × ${t} is ${n} sprongen van ${t}: ${Array.from({length: n}, (_, i) => (i + 1) * t).join(", ")}.`, `Omdraaien mag: ${n} × ${t} = ${t} × ${n}.`, "Weet je 2 ×? Dan is 4 × het dubbele."], html: lijn(0, n * t + 2, Array.from({length: n}, (_, i) => [i * t, (i + 1) * t, "+" + t]), Array.from({length: n + 1}, (_, i) => i * t))}; },
+  d: it => { const [n, t] = kies2(it, [12, 3], [20, 4], (x, v) => x.a === v[0] && x.b === v[1]); return {title: "Delen", lines: [`${n} snoepjes, eerlijk verdeeld in zakjes van ${t}. Hoeveel zakjes?`, `${n} : ${t} betekent: hoe vaak past ${t} in ${n}?`, `Denk aan de tafel van ${t}: ${n / t} × ${t} = ${n}. Dus ${n} : ${t} = ${n / t}.`], html: `<div class="rk-vb-groepen">${Array.from({length: n / t}, () => `<span>${"<i></i>".repeat(t)}</span>`).join("")}</div>`}; },
+  H: it => { const [a, b] = kies2(it, [380, 50], [470, 60], (x, v) => x.a === v[0] && x.b === v[1]); const t = Math.ceil(a / 100) * 100, r = t - a; return {title: "Over een honderdtal", lines: [`Een boek van ${a} bladzijden, en je leest er nog ${b}.`, `Eerst naar het volle honderdtal: ${a} + ${r} = ${t}.`, `Dan de rest: ${t} + ${b - r} = ${a + b}.`, "Net als de brug over 10, maar met tientallen."], html: lijn(a - 20, a + b + 20, [[a, t, "+" + r], [t, a + b, "+" + (b - r)]], [a, t, a + b])}; },
+  c: it => { const [a, b] = kies2(it, [8, 5], [7, 6], (x, v) => x.a === v[0] && x.b === v[1]); const r = 10 - a; return {title: "Kommagetallen: over de 1", lines: [`0,${a} liter melk, en er komt 0,${b} liter bij.`, `Net als ${a} + ${b} = ${a + b}, maar dan in tienden: 0,${a} + 0,${b} = ${kc((a + b) / 10)}.`, `Eerst naar de 1: 0,${a} + 0,${r} = 1. Dan nog 0,${b - r} erbij.`, "Tien tienden is één hele."], html: lijn(0.5, 1.5, [[a / 10, 1, "+0," + r], [1, (a + b) / 10, "+0," + (b - r)]], [0.5, a / 10, 1, (a + b) / 10, 1.5].filter((v, i, x) => x.indexOf(v) === i), v => kc(Math.round(v * 10) / 10))}; },
+  p: it => { const [pc, n] = kies2(it, [30, 40], [20, 60], (x, v) => x.a === v[0] && x.b === v[1]); const t = n / 10; return {title: "Procenten via 10%", lines: [`Korting in de winkel: ${pc}% van ${n} euro.`, `100% is het hele bedrag: ${n}.`, `10% is delen door 10: 10% van ${n} = ${kc(t)}.`, `${pc}% is ${pc / 10} keer 10%: ${pc / 10} × ${kc(t)} = ${kc(pc / 10 * t)}.`, "1% is delen door 100. 5% is de helft van 10%."], html: `<div class="rk-vb-delen">${Array.from({length: 10}, (_, i) => `<span class="${i < pc / 10 ? "v" : ""}">${kc(t)}</span>`).join("")}</div><p class="rk-vb-onder">${n} in 10 stukken: elk stuk is 10%</p>`}; },
+  b: it => { const [te, no, n] = kies2(it, [3, 4, 20], [2, 5, 30], (x, v) => x.a === v[0] + 100 * v[1] && x.b === v[2]); return {title: "Een breuk van een getal", lines: [`${te}/${no} van ${n} snoepjes.`, `De noemer (${no}) zegt in hoeveel gelijke stukken: ${n} : ${no} = ${n / no}.`, `De teller (${te}) zegt hoeveel stukken je neemt: ${te} × ${n / no} = ${te * n / no}.`, "Eerst delen door de noemer, dan keer de teller."], html: delen(n, no, te, n / no)}; },
+  v: it => { const [a, b, c] = kies2(it, [3, 4, 2], [5, 2, 3], (x, v) => x.v && x.v[0] === v[0] && x.v[1] === v[1] && x.v[2] === v[2]); return {title: "Bewerkingsvolgorde", lines: [`Je koopt 1 schrift van ${a} euro en ${b} pennen van ${c} euro: ${a} + ${b} × ${c}.`, "Eerst wat tussen haakjes staat.", "Dan keer en gedeeld door.", "Dan plus en min, van links naar rechts.", `${a} + ${b} × ${c} = ${a} + ${b * c} = ${a + b * c}, niet ${(a + b) * c}.`], html: `<div class="rk-vb-volgorde"><span>${a} + <u>${b} × ${c}</u></span><span>${a} + ${b * c}</span><span><b>${a + b * c}</b></span></div>`}; }
+};
 const T = {
-  id: "rekenmuur", title: "De rekenmuur", version: "v0.5", noun: "sommen", subject: "Rekenen", glyph: "10", tint: "#F4DDE3",
+  id: "rekenmuur", title: "De rekenmuur", version: "v0.6", noun: "sommen", subject: "Rekenen", glyph: "10", tint: "#F4DDE3",
   practices: "rekenen uit je hoofd, van splitsen tot 10 tot procenten en breuken",
   helps: "rekenen met geld, tijd en grote getallen, en verhoudingen",
   stones: STONES, stoneOf, fromKey: k => fromKey(k),
+  rules: it => { const f = HOE[it.type]; if (!f) return null; ALT = false; let R = f(it); const af = it.eq.replace("?", kc(it.ans)); if (R.lines.join(" ").includes(af)){ ALT = true; R = f(it); ALT = false; } return {title: R.title, lines: R.lines, html: `<div class="rk-vb">${R.html}</div>`}; },
+  rulesLabel: "Laat zien hoe het werkt",
+  _test: {HOE, mk},
   teardown(){ readFn = null; typed = ""; },
   forms: { A: {name: "Met het model", desc: "Tienstrook, getallenlijn of rooster erbij, zolang je het nodig hebt."}, B: {name: "Alleen getallen", desc: "Rekenen in je hoofd. Het model komt alleen als je het vraagt."} },
   aiFact: "AI kan zich verrekenen, net als mensen. Daarom maakt gewone code hier de sommen en kijkt die ook na.",
