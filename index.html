@@ -263,6 +263,11 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 .gr-vb-zin{font-family:var(--pl-display);font-size:1.15rem}
 .gr-w.gr-klein{font-size:1.15rem;padding:0 2px}
 .gr-vb-naam{font-size:.9rem;color:var(--pl-ink-soft)}
+/* v0.9.2: de oplossing blijft staan; Verder gaat meteen door. De regelknop blijft altijd, rustig als het goed gaat */
+.pl-ok{display:flow-root}
+.pl-verder{float:right;margin:8px 0 0 12px;border:1.5px solid var(--pl-leaf);background:var(--pl-surface);color:var(--pl-ink);border-radius:var(--pl-r-pill);min-height:40px;padding:6px 16px;font:inherit;font-weight:600;cursor:pointer}
+.pl-rulebar.stil .pl-rulebtn{border-color:transparent;background:transparent;color:var(--pl-ink-soft);font-weight:500;min-height:36px;padding:4px 10px;font-size:.92rem}
+.pl-rulebar.stil .pl-rulebtn:hover{color:var(--pl-violet-deep);border-color:var(--pl-line)}
 
 /* De tuin v0.8: lagen (lucht, heuvels, wei, tuintjes, gras), licht volgens de klok, beweging die meegroeit (gd-t0 … gd-t3).
    Alleen transform, opacity en filter; bij "minder beweging" staat alles stil (core.css). Geen tekst. */
@@ -676,7 +681,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 </style>
 </head>
 <body>
-<!-- Leeratelier Leeratelier v0.9.1. Gebouwd op de Leeratelier-kern v0.9.1. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
+<!-- Leeratelier Leeratelier v0.9.2. Gebouwd op de Leeratelier-kern v0.9.2. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
 <main class="pl-app" id="pl-app"></main>
 
 
@@ -697,7 +702,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 (function(){
 "use strict";
 const PL = window.PL = {};
-PL.VERSION = "v0.9.1";
+PL.VERSION = "v0.9.2";
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -1043,6 +1048,19 @@ PL.start = async function(T, opts){
   /* tijdens een ronde staat "Laat zien" (het scherm voor papa of je zus) niet in de kop: hulp bij de vraag zit in de ronde zelf */
   const topBtn = on => { const b = $("pl-garden-btn"); if (b) b.hidden = on; };
   let rulesShow = () => {};   // wordt per ronde gezet (playRound)
+  function waitNext(ms, run){
+    if (window.__plSnel) ms = Math.min(ms, T.pause || 900);   // alleen voor tests/ux.py: de oude snelheid
+    const box = $("pl-fb") && $("pl-fb").querySelector(".pl-ok");
+    if (!box) return sleep(ms);
+    box.insertAdjacentHTML("beforeend", `<button type="button" class="pl-verder" id="pl-verder">Verder</button>`);
+    return new Promise(res => {
+      const done = () => { clearTimeout(t); document.removeEventListener("keydown", key); res(); };
+      const key = e => { if (e.key === "Enter" && !e.repeat) setTimeout(done, 0); };
+      const t = setTimeout(done, ms);
+      setTimeout(() => document.addEventListener("keydown", key), 300);   // de Enter van het antwoord zelf telt niet
+      $("pl-verder").addEventListener("click", done);
+    });
+  }
   let runId = 0, inRound = false;   // een ronde die verlaten wordt, krijgt een nieuw runId; de oude lus stopt dan vanzelf
 
   function save(){
@@ -1298,14 +1316,16 @@ PL.start = async function(T, opts){
       <div id="pl-work"></div></div>`;
     ctx.work = $("pl-work");
     T.setup(ctx);
-    /* "Laat de regel zien" (v0.9): de regel van de gevraagde vorm, nooit het antwoord. Hij staat er bij het begin (zolang het
-       model nog vol steunt) en na een tussenstap; na drie keer op rij meteen goed verdwijnt hij weer. Bekijken stopt niets. */
+    /* "Laat de regel zien" (v0.9.2): de regel van de gevraagde vorm, nooit het antwoord. Hij is er altijd (bij elke training
+       met regels). Bij het begin, zolang het model nog vol steunt, en na een tussenstap valt hij op; na drie keer op rij meteen
+       goed wordt hij rustig (klein, grijs), maar hij blijft te openen. Bekijken stopt niets. */
     let okRun = 0, ruleItem = null, ruleSeen = false;
-    rulesShow = (on) => {
+    rulesShow = (prom, fresh) => {
       const bar = $("pl-rulebar"); if (!bar) return;
       const R = ruleItem && T.rules ? T.rules(ruleItem, ctx) : null;
-      if (!on || !R){ bar.hidden = true; return; }
-      if (!bar.hidden) return;
+      if (!R){ bar.hidden = true; return; }
+      bar.classList.toggle("stil", !prom);
+      if (!fresh && !bar.hidden) return;
       $("pl-rules").innerHTML = `<b>${esc(R.title)}</b><ul>${R.lines.map(l => `<li>${esc(l)}</li>`).join("")}</ul>${R.html || ""}`;   // html: een voorbeeld in beeld, gemaakt door de training
       $("pl-rules").hidden = true; $("pl-rule-btn").setAttribute("aria-expanded", "false"); $("pl-rule-btn").textContent = "Laat de regel zien";
       bar.hidden = false;
@@ -1329,7 +1349,7 @@ PL.start = async function(T, opts){
       for (let k = 0; k < dots.length; k++) dots[k].className = "pl-dot" + (k < i ? " done" : k === i ? " now" : "");
       const t0 = performance.now();
       tried = null; PL._item = item;   // alleen voor tests/ux.py (controle: noemt de tussenstap het antwoord?)
-      ruleItem = item; ruleSeen = false; rulesShow(false); rulesShow(ctx.support(item.stone) === "vol" && okRun < 3);
+      ruleItem = item; ruleSeen = false; rulesShow(ctx.support(item.stone) === "vol" && okRun < 3, true);
       let r;
       try { r = await T.ask(item, ctx); } catch(e){ if (run !== runId) return; console.error(e); r = {first: false, step: false}; }
       if (run !== runId) return;   // de ronde is verlaten
@@ -1357,7 +1377,9 @@ PL.start = async function(T, opts){
       if (!r.first && !item.requeue && queue.length){ queue.splice(Math.min(P.requeueAfter, queue.length), 0, Object.assign({}, item, {requeue: true})); $("pl-dots").insertAdjacentHTML("beforeend", `<span class="pl-dot"></span>`); }
       i++;
       save();
-      await sleep((T.pause || 900) * (ctx.pace === "rustig" ? 1.7 : 1));
+      // v0.9.2: de oplossing blijft staan tot de volgende vraag: lang genoeg om "Gelukt" en het waarom te lezen
+      // (1,2 s + 45 ms per teken, hooguit 7 s); "Verder" gaat meteen door. Het tempo wordt vóór deze pauze gemeten.
+      await waitNext(Math.max(T.pause || 900, Math.min(7000, 1200 + ($("pl-fb").innerText || "").length * 45)) * (ctx.pace === "rustig" ? 1.4 : 1), run);
       if (run !== runId) return;
       ctx.fb.clear();
     }
