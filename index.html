@@ -458,6 +458,27 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 .pl-tuinpagina .gd *{pointer-events:none}
 .pl-tuinpagina .gd .gd-bed{pointer-events:auto}
 
+/* ======================= v0.13 — Te makkelijk / Pittig ======================= */
+.pl-roundprog{position:relative;flex-wrap:nowrap}
+.pl-feel{display:flex;gap:6px;align-items:center;flex:none}
+.pl-feelbtn{border:1.5px solid var(--pl-line);background:var(--pl-surface);color:var(--pl-ink-soft);border-radius:var(--pl-r-pill);min-height:44px;padding:6px 12px;font:500 .9rem var(--pl-body);cursor:pointer}
+.pl-feelbtn:hover:not([disabled]){border-color:var(--pl-violet);color:var(--pl-ink)}
+.pl-feelbtn[aria-expanded="true"],.pl-feelbtn[aria-pressed="true"]{border-color:var(--pl-violet);background:var(--pl-violet-soft);color:var(--pl-violet-deep)}
+.pl-feelbtn[disabled]{cursor:default}
+.pl-feelbtn[disabled]:not([aria-pressed="true"]){opacity:.5}
+/* in de ronde: het vak met redenen schuift over het spel (niets verspringt) */
+.pl-feel-ronde .pl-feelpanel{position:absolute;right:0;top:calc(100% + 6px);z-index:28;width:min(340px,calc(100vw - 32px));background:var(--pl-surface);border:1px solid var(--pl-line);border-radius:var(--pl-r-card);padding:12px;box-shadow:0 14px 30px -16px rgba(68,51,61,.55);display:grid;gap:8px}
+.pl-feel-ronde .pl-feelpanel[hidden]{display:none}
+.pl-feelpanel .pl-note{margin:0}
+.pl-feelchips{grid-template-columns:1fr;padding:0}
+.pl-feelchips .pl-chip b{font-weight:500;font-family:var(--pl-body)}
+.pl-feelwrap{display:grid;gap:8px}
+.pl-feelwrap .pl-feel{flex-wrap:wrap}
+.pl-feel-einde .pl-feelpanel{flex-basis:100%;display:grid;gap:8px}
+.pl-feel-einde .pl-feelpanel[hidden]{display:none}
+.pl-toets{font-family:var(--pl-display);font-size:1.05rem}
+@media (max-width:380px){.pl-feelbtn{padding:6px 9px;font-size:.85rem}}
+
 /* De tuin v0.8: lagen (lucht, heuvels, wei, tuintjes, gras), licht volgens de klok, beweging die meegroeit (gd-t0 … gd-t3).
    Alleen transform, opacity en filter; bij "minder beweging" staat alles stil (core.css). Geen tekst. */
 .gd{opacity:0;transition:opacity .8s}
@@ -848,6 +869,8 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 /* v0.11: de geluidsknoppen staan in de kop; onderin is geen ruimte meer voor nodig (Flow: geen scrollen op 375×667) */
 .tf-play{padding-bottom:16px}
 @media (max-width:560px){.tf-play{padding-bottom:14px}.tf-world,.tf-world .tf-play{min-height:min(70vh,560px)}}
+/* v0.13: de rij met Te makkelijk / Pittig staat boven het spel; het bos wordt op de telefoon iets lager (geen scrollen op 375×667) */
+@media (max-width:560px){.tf-world,.tf-world .tf-play{min-height:min(66vh,540px)}}
 
 .sp-board{display:grid;gap:14px}
 .sp-frame{font-family:var(--pl-display);font-weight:600;font-size:clamp(1.8rem,6vw,2.6rem);margin:0;line-height:1.15}
@@ -907,7 +930,7 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 </style>
 </head>
 <body>
-<!-- Leeratelier Leeratelier v0.12. Gebouwd op de Leeratelier-kern v0.12. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
+<!-- Leeratelier Leeratelier v0.13. Gebouwd op de Leeratelier-kern v0.13. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
 <main class="pl-app" id="pl-app"></main>
 
 
@@ -928,7 +951,7 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 (function(){
 "use strict";
 const PL = window.PL = {};
-PL.VERSION = "v0.12";
+PL.VERSION = "v0.13";
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -1106,6 +1129,51 @@ PL.REASONS = {
   leuk: {q: "Wat maakte het leuk?", opts: [["lukte", "Het lukte"], ["snapte", "Ik snapte het"], ["spel", "Het spel"], ["kiezen", "Zelf kiezen"], ["weet", "Weet ik niet"]]},
   pittig: {q: "Wat maakte het pittig?", opts: [["veel", "Veel lukte niet meteen"], ["uitleg", "Ik snapte de uitleg niet"], ["snel", "Het ging te snel"], ["lang", "Het duurde lang"], ["weet", "Weet ik niet"]]}
 };
+/* ---------- v0.13 Te makkelijk / Pittig: vrijwillig, met een reden uit haar beleving; elke reden is een vermoeden dat de
+   volgende ronde toetst (zie CHANGELOG en kennis/08). Per training de woorden die zij zou gebruiken. ---------- */
+const SNEL = ["snel", "Het ging te snel"], NIEUW = ["nieuw", "Ik wil iets nieuws"];
+PL.FEEL = {
+  rekenen:     {pittig: [["tellen", "Ik moest op mijn vingers tellen"], ["begin", "Ik wist niet waar ik moest beginnen"], SNEL], makkelijk: [["weet", "Dit weet ik al, ik hoef niet na te denken"], ["plaatje", "Het plaatje heb ik niet nodig"], NIEUW]},
+  tafels:      {pittig: [["tellen", "Ik moest de hele rij aftellen"], ["onbekend", "Deze tafel ken ik nog niet"], SNEL], makkelijk: [["weet", "Deze tafel zit in mijn hoofd"], ["plaatje", "Ik hoef niet te springen"], NIEUW]},
+  spelling:    {pittig: [["horen", "Ik hoorde het verschil niet"], ["gok", "Ik koos maar wat"], SNEL], makkelijk: [["weet", "Ik hoor het meteen"], NIEUW]},
+  werkwoorden: {pittig: [["dt", "Ik wist niet of het d of t was"], ["gok", "Ik koos maar wat"], SNEL], makkelijk: [["weet", "Ik weet het zonder de stappen"], NIEUW]},
+  zinnen:      {pittig: [["begin", "Ik wist niet welk woord"], ["gok", "Ik koos maar wat"], SNEL], makkelijk: [["weet", "Ik zie het meteen"], NIEUW]},
+  topo:        {pittig: [["zoek", "Ik moest overal zoeken"], ["onbekend", "Ik ken het land niet"], SNEL], makkelijk: [["weet", "Ik weet waar het ligt"], NIEUW]}
+};
+const FEEL_KEY = {rekenmuur: "rekenen", tafels: "tafels", "spelling-een-of-twee": "spelling", werkwoorden: "werkwoorden", zinnen: "zinnen"};
+PL.feelSet = T => PL.FEEL[T.feelKey || FEEL_KEY[T.id] || (T.group === "topo" ? "topo" : "rekenen")];
+/* vermoeden → toets → wat er gebeurt. sup = hulp in de volgende ronde bij die steen; rules = de regel staat open bij de eerste
+   vraag; adj = een bestaande aanpassing (veel opwarmers, rustiger); test = hoe de volgende ronde het vermoeden toetst; pass = wat er
+   gebeurt als het klopt (verder = een stap verder, flits = het model wordt kort). */
+PL.FEEL_EFFECT = {
+  weet:     {kind: "makkelijk", sup: "opvraag", test: "zonder", pass: "verder"},
+  nieuw:    {kind: "makkelijk", sup: "opvraag", test: "zonder", pass: "verder"},
+  plaatje:  {kind: "makkelijk", sup: "flits", test: "flits", pass: "flits"},
+  tellen:   {kind: "pittig", sup: "vol", adj: "veel", test: "tempo"},
+  onbekend: {kind: "pittig", sup: "vol", adj: "veel", rules: true, test: "tempo"},
+  begin:    {kind: "pittig", rules: true, test: "eerste"},
+  horen:    {kind: "pittig", sup: "vol", rules: true, test: "eerste"},
+  dt:       {kind: "pittig", sup: "vol", rules: true, test: "eerste"},
+  zoek:     {kind: "pittig", sup: "vol", rules: true, test: "eerste"},
+  gok:      {kind: "pittig", rules: true, adj: "snel", test: "gok"},
+  snel:     {kind: "pittig", adj: "snel", test: "stappen"}
+};
+/* wat ze meteen terugziet: wat er de volgende ronde gebeurt, in haar woorden (geen techniek) */
+PL.FEEL_REPLY = {
+  weet: "Dank je. De volgende ronde krijg je er een paar zonder hulp. Dan zien we het samen.",
+  nieuw: "Dank je. De volgende ronde krijg je er een paar zonder hulp. Gaan die vlot, dan komt er iets nieuws.",
+  plaatje: "Dank je. De volgende ronde is de hulp er maar heel even. Dan zien we of dat genoeg is.",
+  tellen: "Dank je. De volgende ronde blijft de hulp in beeld, zodat je minder hoeft te tellen.",
+  onbekend: "Dank je. De volgende ronde begin ik met wat je al kent, en de regel staat klaar.",
+  begin: "Dank je. De volgende ronde staat de regel meteen open bij de eerste vraag.",
+  horen: "Dank je. De volgende ronde staat de regel open en blijft de hulp erbij.",
+  dt: "Dank je. De volgende ronde staat de regel open en blijft de hulp erbij.",
+  zoek: "Dank je. De volgende ronde staat de regel open en blijft de hulp erbij.",
+  gok: "Dank je. De volgende ronde gaat rustiger, met de regel erbij. Kiezen mag even duren.",
+  snel: "Dank je. De volgende ronde gaat rustiger.",
+  vraag: "Dank je. Dan verandert er niets."
+};
+
 /* m: meting van de ronde {fr: aandeel in één keer, steps, reqN, reqOk, switches, mode, nextMode, modeName, nextName, hasModes, form} */
 PL.reasonReply = function(react, why, m){
   const ok = m.fr >= 0.67, low = m.fr < 0.5;
@@ -1231,7 +1299,7 @@ PL.growthOf = function(T, d){
   const ss = realSessions(d), known = Object.values((d && d.items) || {}).filter(knownRec).length;
   const last = ss.length ? ss[ss.length - 1].d : "";
   return {sessions: ss.length, known, last, status: ss.length ? whenText(last) : "Nieuw",
-    text: known ? `${cap1(PL.stem.aantal(known, T.noun))} ${known === 1 ? "gaat" : "gaan"} al vanzelf.` : ""};   // v0.12: getallen tot twintig voluit; geen zin zonder feit
+    text: known ? `${cap1(PL.stem.aantal(known, PL.stem.noun(T)))} ${known === 1 ? "gaat" : "gaan"} al vanzelf.` : ""};   // v0.12: getallen tot twintig voluit; geen zin zonder feit
 };
 /* Zeigarnik: een ronde die halverwege verlaten is, blijft staan (data.open) tot ze hem afmaakt; ouder dan 3 dagen telt niet. */
 const openRound = d => { const o = d && d.open; if (!o || !o.q || !o.q.length) return null; if (dayNum(today()) - dayNum((o.d || "").slice(0, 10)) > 3) return null; return o; };
@@ -1362,7 +1430,7 @@ PL.home = async function(){
     let w = "";
     if (!cand.length) w = st.say("home.eerste", {training: last.title, stap: last.stones[0].name, reg}, mem);
     else if (sinceAll >= 5 && sinceAll < 999){ const nk = st.sig.newestKnown(dl) || st.sig.lastItem(dl); if (nk) w = st.say("home.pauze", {item: lab(nk.k), genus: g, reg}, mem); }
-    if (!w && cand.length){ const dk = st.sig.dueToday(dl); w = dk.length ? st.say("home.due", {items: st.lijst(dk.slice(0, 3).map(lab)), pl: dk.length > 1, genus: g, reg}, mem) : st.say("home.laatst", {dag: st.dag(ld), stap: last.stones[Math.max(0, (dl.stage || 1) - 1)].name, reg}, mem); }
+    if (!w && cand.length){ const dk = st.sig.dueToday(dl); w = dk.length ? st.say("home.due", {items: st.kort(dk.slice(0, 3).map(lab), dk.length, st.noun(last)), pl: dk.length > 1, genus: g, reg}, mem) : st.say("home.laatst", {dag: st.dag(ld), stap: last.stones[Math.max(0, (dl.stage || 1) - 1)].name, reg}, mem); }
     if (w) why = w;
   }
   homeFrame(app, "Leeratelier", false);
@@ -1428,8 +1496,8 @@ function resultBlocks(T, d, mem){
   blocks.push(["Laatste keer", [bt ? st.say("kaart.doorbraak", {item: lab(bt.k), eerder: st.dag(bt.eerder), dag: st.dag(bt.dag), genus: g}, mem)
     : st.say("kaart.laatste", {dag: st.dag(last.d), rondes: st.aantal(sig.roundsOn(d, last.d), "rondes"), item: li ? lab(li.k) : ""}, mem)]]);
   const sc = sig.schedule(d), terug = [];
-  for (const gp of sc.soon.slice(0, 2)) terug.push(st.say("kaart.terug", {dagT: st.dagT(gp.n), items: st.lijst(gp.ks.slice(0, 3).map(lab).concat(gp.ks.length > 3 ? ["nog " + st.aantal(gp.ks.length - 3, T.noun)] : [])), pl: gp.ks.length > 1, genus: g}, mem));
-  if (sc.rest.length) terug.push(st.say("kaart.rust", {aantal: st.aantal(sc.rest.length, T.noun), dagT: st.dagT(sc.rest[0].due), pl: sc.rest.length > 1, genus: g}, mem));
+  for (const gp of sc.soon.slice(0, 2)) terug.push(st.say("kaart.terug", {dagT: st.dagT(gp.n), items: st.kort(gp.ks.slice(0, 3).map(lab), gp.ks.length, st.noun(T)), pl: gp.ks.length > 1, genus: g}, mem));
+  if (sc.rest.length) terug.push(st.say("kaart.rust", {aantal: st.aantal(sc.rest.length, st.noun(T)), dagT: st.dagT(sc.rest[0].due), pl: sc.rest.length > 1, genus: g}, mem));
   if (terug.filter(Boolean).length) blocks.push(["Komt terug", terug.filter(Boolean)]);
   const deed = [], hd = sig.helpDrop(d)[0];
   if (hd) deed.push(st.say("kaart.hulp", {item: lab(hd.k), eerder: st.dag(hd.eerder), dag: st.dag(hd.dag), genus: g}, mem));
@@ -1450,7 +1518,7 @@ function perkLine(T, d, mem){
   const st = PL.stem, sig = st.sig, g = st.genus(T), n = sig.knownCount(d), nk = sig.newestKnown(d), last = sig.lastSession(d);
   const title = T.isGroup ? T.title : T.title;
   if (!last) return st.say("perk.leeg", {training: title}, mem);
-  if (n && nk) return st.say("perk.groei", {aantal: st.aantal(n, T.noun), item: st.label(T, nk.k), dag: st.dag(nk.d), pl: n > 1, genus: g}, mem);
+  if (n && nk) return st.say("perk.groei", {aantal: st.aantal(n, st.noun(T)), item: st.label(T, nk.k), dag: st.dag(nk.d), pl: n > 1, genus: g}, mem);
   return st.say("perk.bezig", {dag: st.dag(last.d), rondes: st.aantal(realSessions(d).reduce((a, s) => a + (s.rounds || 0), 0), "rondes"), stap: T.stones[Math.max(0, (d.stage || 1) - 1)].name}, mem);
 }
 /* van een rij op home (training of groep) naar de training met de meest recente stand */
@@ -1562,7 +1630,8 @@ PL.start = async function(T, opts){
   const S = {d: today(), t0: Date.now(), min: 0, rounds: 0, again: 0, steps: 0, first: 0, items: 0, forms: [], react: {leuk: 0, gewoon: 0, pittig: 0}, why: {}};
   let sessionAdded = false, form = data.lastForm || "A", lastRound = null, factShown = false, wheelRun = 0, wheelCount = 0, custom = null;
   let wiseShown = false, aiNoteShown = false, roundAdj = null, tried = null;
-  let cur_ = null, okVoice = () => "";   // v0.12: de vraag die nu loopt (voor de stem na "Gelukt")
+  let cur_ = null, okVoice = () => "";
+  let roundFeel = null, feelUsed = false, feelRulesOpened = false, feelStone = null, feelOpenT = 0;   // v0.13 Te makkelijk / Pittig   // v0.12: de vraag die nu loopt (voor de stem na "Gelukt")
   /* tijdens een ronde staat "Laat zien" (het scherm voor papa of je zus) niet in de kop: hulp bij de vraag zit in de ronde zelf */
   const topBtn = on => { const b = $("pl-garden-btn"); if (b) b.hidden = on; };
   let rulesShow = () => {};   // wordt per ronde gezet (playRound)
@@ -1642,7 +1711,12 @@ PL.start = async function(T, opts){
     modeName: m => (T.explainNames && T.explainNames[m]) || "",
     rec, known, due, stone, green,
     // steunniveau van het model: vol (geen beheersing), flits (beheersing, nog geen tempo), opvraag (tempo)
-    support(id){ const s = stone(id); return !s.power ? "vol" : !s.speed ? "flits" : "opvraag"; },
+    support(id){
+      // v0.13: een "Te makkelijk" of "Pittig" van vorige ronde zet de hulp bij die steen voor deze ronde (de toets)
+      if (roundFeel && roundFeel.st === id){ const E = PL.FEEL_EFFECT[roundFeel.why]; if (E && E.sup) return E.sup; }
+      const s = stone(id); const lv = !s.power ? "vol" : !s.speed ? "flits" : "opvraag";
+      return lv === "vol" && data.fade && data.fade[id] ? "flits" : lv;   // na een geslaagde toets "plaatje niet nodig": kort
+    },
     setAsk(lead, main){ $("pl-ask-lead").textContent = lead || ""; $("pl-ask-main").textContent = main || ""; },
     /* feedback: drie vaste vormen. Tijdens een tussenstap blijft haar eigen antwoord in beeld (C3): fb.tried(waarde). */
     fb: {
@@ -1679,7 +1753,7 @@ PL.start = async function(T, opts){
     if (todayRounds >= 2) return (introLine = st.say("intro.vandaag", {rondes: st.aantal(todayRounds, "rondes"), reg}, V));
     if (since >= 5){ const gs = T.stones.slice(0, data.stage).reverse().find(s => green(s.id)); return (introLine = st.say("intro.pauze", {stap: (gs || T.stones[data.stage - 1]).name, reg}, V)); }
     const dueK = sig.dueToday(data);
-    if (dueK.length){ const d0 = dueK.map(k => data.items[k].d || "").filter(Boolean).sort()[0]; return (introLine = st.say("intro.terug", {items: st.lijst(dueK.slice(0, 3).map(k => st.label(T, k))), pl: dueK.length > 1, dag: d0 ? st.dag(d0) : "", genus: g, reg}, V)); }
+    if (dueK.length){ const d0 = dueK.map(k => data.items[k].d || "").filter(Boolean).sort()[0]; return (introLine = st.say("intro.terug", {items: st.kort(dueK.slice(0, 3).map(k => st.label(T, k)), dueK.length, st.noun(T)), pl: dueK.length > 1, dag: d0 ? st.dag(d0) : "", genus: g, reg}, V)); }
     const vorm = `"${T.forms[data.lastForm || "A"].name}"`;
     introLine = ss.length % 2 ? st.say("intro.vorm", {vorm, dag: st.dag(last.d), reg}, V) : st.say("intro.laatst", {stap, dag: st.dag(last.d), reg}, V);
     return introLine;
@@ -1829,6 +1903,55 @@ PL.start = async function(T, opts){
     step();
   }
 
+  /* --- v0.13 Te makkelijk / Pittig: twee rustige knoppen, vrijwillig. Pas met een reden doet het iets; geen beloning voor klikken.
+         Een reden binnen 0,7 s, of een reden die de laatste drie keer niet klopte, wordt alleen gelogd (ouderscherm). --- */
+  function feelHTML(where){
+    const chosen = feelUsed ? lastFeel : null;
+    return `<div class="pl-feel pl-feel-${where}" id="pl-feel" role="group" aria-label="Te makkelijk of pittig">
+      <button type="button" class="pl-feelbtn" data-feel="makkelijk" aria-expanded="false" aria-pressed="${chosen && chosen.kind === "makkelijk"}" ${feelUsed ? "disabled" : ""}>Te makkelijk</button>
+      <button type="button" class="pl-feelbtn" data-feel="pittig" aria-expanded="false" aria-pressed="${chosen && chosen.kind === "pittig"}" ${feelUsed ? "disabled" : ""}>Pittig</button>
+      <div class="pl-feelpanel" id="pl-feelpanel" aria-live="polite" ${chosen && where === "einde" ? "" : "hidden"}>${chosen && where === "einde" ? `<p class="pl-note">${esc(chosen.reply)}</p>` : ""}</div></div>`;
+  }
+  let lastFeel = null;
+  function wireFeel(){
+    const box = $("pl-feel"); if (!box) return;
+    const panel = $("pl-feelpanel"), set = PL.feelSet(T);
+    box.querySelectorAll("[data-feel]").forEach(b => b.addEventListener("click", () => {
+      if (feelUsed) return;
+      const kind = b.dataset.feel, open = b.getAttribute("aria-expanded") !== "true";
+      box.querySelectorAll("[data-feel]").forEach(x => x.setAttribute("aria-expanded", String(x === b && open)));
+      if (!open){ panel.hidden = true; return; }
+      feelOpenT = performance.now();
+      const q = kind === "pittig" ? "Wat was er pittig?" : "Wat was er te makkelijk?";
+      panel.innerHTML = `<p class="pl-note">${q}</p><div class="pl-chips pl-feelchips" role="group" aria-label="${q}">${set[kind].concat([["vraag", "Weet ik niet"]]).map(([v, t]) => `<button type="button" class="pl-chip" data-why="${v}"><b>${esc(t)}</b></button>`).join("")}</div>`;
+      panel.hidden = false;
+      panel.querySelectorAll("[data-why]").forEach(c => c.addEventListener("click", () => feelChoose(kind, c.dataset.why)));
+    }));
+  }
+  function feelChoose(kind, why){
+    if (feelUsed) return;
+    const st = feelStone || (lastRound && lastRound.res && lastRound.res.stoneId) || T.stones[data.stage - 1].id;
+    const fast = performance.now() - feelOpenT < 700;
+    const recent = (data.feelLog || []).filter(x => x.why === why).slice(-3);
+    const ignored = why === "vraag" || fast || (recent.length === 3 && recent.every(x => x.pass === false));
+    const E = PL.FEEL_EFFECT[why];
+    log({feel: kind, why, st, fast: fast ? 1 : undefined, ign: ignored && why !== "vraag" ? 1 : undefined});
+    S.react[kind] = (S.react[kind] || 0) + 1;
+    if (!ignored && E){
+      const s = data.stones[st];
+      data.feel = {kind, why, st, d: today(), base: s && s.rts && s.rts.length ? s.rts.slice().sort((a, b) => a - b)[Math.floor(s.rts.length / 2)] : null};
+      if (E.adj) data.adjust = {kind: E.adj, left: 1, st, from: today()};
+      if (kind === "pittig" && data.fade) delete data.fade[st];
+    }
+    // eerlijk: alleen beloven wat er ook gebeurt
+    const reply = why === "vraag" ? PL.FEEL_REPLY.vraag : ignored ? "Dank je. Ik kijk de volgende ronde gewoon mee." : PL.FEEL_REPLY[why];
+    feelUsed = true; lastFeel = {kind, why, reply};
+    const box = $("pl-feel"), panel = $("pl-feelpanel");
+    if (box){ box.querySelectorAll("[data-feel]").forEach(x => { x.disabled = true; x.setAttribute("aria-pressed", String(x.dataset.feel === kind)); x.setAttribute("aria-expanded", "false"); }); }
+    if (panel){ panel.innerHTML = `<p class="pl-note">${esc(reply)}</p>`; panel.hidden = false; if (box && box.classList.contains("pl-feel-ronde")) setTimeout(() => { if ($("pl-feelpanel")) $("pl-feelpanel").hidden = true; }, 3500); }
+    save();
+  }
+
   /* --- ronde samenstellen: 2 opwarmers (eerst wat aan herhaling toe is), 4 uit de huidige steen --- */
   function composeRound(){
     const stones = T.stones;
@@ -1879,19 +2002,22 @@ PL.start = async function(T, opts){
     app.classList.add("pl-inround");
     if (resume){ form = resume.f || form; custom = resume.c || null; }
     data.lastForm = form;
+    // v0.13: wat ze vorige ronde zei (Te makkelijk / Pittig) wordt in deze ronde getoetst
+    roundFeel = data.feel || null; feelUsed = false; feelRulesOpened = false; lastFeel = null; feelStone = null;
     // een aanpassing uit een reden van vorige keer geldt voor deze ronde; daarna telt hij af
     roundAdj = data.adjust && data.adjust.left > 0 ? Object.assign({}, data.adjust) : null;
     if (data.adjust){ data.adjust.left--; if (data.adjust.left <= 0) data.adjust = null; }
     const knownBefore = new Set(Object.keys(data.items).filter(k => known(k)));
     // één schermindeling voor een ronde (B1/B2): een werkvlak van hooguit ~600 px in het midden; vraag, hulp en invoer samen in beeld
     screen.innerHTML = `<div class="pl-round" id="pl-round">
-      <div class="pl-roundprog" id="pl-roundprog" hidden><span class="pl-bar" aria-hidden="true"><i id="pl-bar-i"></i></span><span class="pl-count" id="pl-count" aria-live="off"></span></div>
+      <div class="pl-roundprog" id="pl-roundprog" hidden><span class="pl-bar" aria-hidden="true"><i id="pl-bar-i"></i></span><span class="pl-count" id="pl-count" aria-live="off"></span>${feelHTML("ronde")}</div>
       <div class="pl-ask" aria-live="polite"><span class="pl-ask-lead" id="pl-ask-lead"></span><span class="pl-ask-main" id="pl-ask-main"></span></div>
       <div class="pl-rulebar" id="pl-rulebar" hidden><button type="button" class="pl-rulebtn" id="pl-rule-btn" aria-expanded="false" aria-controls="pl-rules">${esc(T.rulesLabel || "Laat de regel zien")}</button><div class="pl-rules" id="pl-rules" hidden></div></div>
       <div class="pl-fb" id="pl-fb" aria-live="polite"></div>
       <div id="pl-work"></div>
       <div class="pl-sheet" id="pl-sheet" aria-live="polite" hidden></div></div>`;
     ctx.work = $("pl-work");
+    wireFeel();
     T.setup(ctx);
     /* "Laat de regel zien" (v0.9.2): de regel van de gevraagde vorm, nooit het antwoord. Hij is er altijd (bij elke training
        met regels). Bij het begin, zolang het model nog vol steunt, en na een tussenstap valt hij op; na drie keer op rij meteen
@@ -1954,6 +2080,8 @@ PL.start = async function(T, opts){
       if (stuckNote && !stuckShown){ stuckShown = true; ctx.fb.note(stuckNote); stuckNote = ""; }
       tried = null; PL._item = item;   // alleen voor tests/ux.py (controle: noemt de tussenstap het antwoord?)
       ruleItem = item; ruleSeen = false; rulesShow(ctx.support(item.stone) === "vol" && okRun < 3, true);
+      feelStone = item.stone;
+      if (roundFeel && !feelRulesOpened && item.stone === roundFeel.st && (PL.FEEL_EFFECT[roundFeel.why] || {}).rules && $("pl-rules") && $("pl-rules").hidden && !$("pl-rulebar").hidden){ feelRulesOpened = true; $("pl-rule-btn").click(); }
       let r;
       try { r = await T.ask(item, ctx); } catch(e){ if (run !== runId) return; console.error(e); r = {first: false, step: false}; }
       if (run !== runId) return;   // de ronde is verlaten
@@ -1963,7 +2091,7 @@ PL.start = async function(T, opts){
       log({k: item.key, st: item.stone, f: form, ok1: r.first ? 1 : 0, step: r.step ? 1 : 0, rt, warm: item.warm ? 1 : 0, sup: r.support || "", ex: r.step ? (r.expl || "standaard") : undefined, sw: r.switches || undefined, rev: r.revealed ? 1 : undefined, cor: PL._cor || undefined});
       if (cur_.doubt && r.first) res.doubt = res.doubt || item;
       // v0.12 vastlopen (S6, S7, S8): na twee vragen op rij niet in één keer, één keer per ronde een rustige zin bij de volgende vraag
-      if (!r.first && !item.requeue && prevNotFirst && !stuckShown && queue.length){ const ks = [prevNotFirst, item]; stuckNote = PL.stem.say("ronde.vast", {items: PL.stem.lijst([...new Set(ks.map(x => PL.stem.label(T, x.key)))]), pl: ks[0].key !== ks[1].key, genus: PL.stem.genus(T)}, data.voice); }
+      if (!r.first && !item.requeue && prevNotFirst && !stuckShown && queue.length){ const ks = [prevNotFirst, item]; stuckNote = PL.stem.say("ronde.vast", {items: PL.stem.kort([...new Set(ks.map(x => PL.stem.label(T, x.key)))], 0, PL.stem.noun(T), 60), pl: ks[0].key !== ks[1].key, genus: PL.stem.genus(T)}, data.voice); }
       prevNotFirst = !r.first && !item.requeue ? item : null;
       res.items.push({label: item.label, first: r.first, step: r.step, item, rt, requeue: !!item.requeue, expl: r.expl || null});
       okRun = r.first ? okRun + 1 : 0;
@@ -2007,6 +2135,32 @@ PL.start = async function(T, opts){
     if (!custom && wheelCount >= P.wheel && data.stage > 1 && moved === 0){ data.stage--; moved = -1; data.cooldown = P.cooldownRounds; log({wheel: 1, st: cur.id}); }
     if (moved !== 0){ wheelCount = 0; wheelRun = 0; }
     if (moved < 0) data.hold = P.holdRounds;
+    // v0.13: de toets van "Te makkelijk" / "Pittig" (vorige ronde). Klopt het vermoeden, dan volgt de afgesproken stap.
+    if (roundFeel){
+      const E = PL.FEEL_EFFECT[roundFeel.why] || {}, its = res.items.filter(x => !x.requeue && x.item.stone === roundFeel.st);
+      if (!its.length){ roundFeel.tries = (roundFeel.tries || 0) + 1; if (roundFeel.tries >= 2) delete data.feel; }   // die steen kwam niet langs: nog één ronde wachten
+      else {
+        const med = a => a.length ? a.slice().sort((x, y) => x - y)[Math.floor(a.length / 2)] : null;
+        const firstRts = its.filter(x => x.first).map(x => x.rt);
+        const pass = E.test === "zonder" ? its.length >= 2 && its.every(x => x.first && x.rt <= P.fluentMs * 1.5)
+          : E.test === "flits" ? its.length >= 2 && its.filter(x => !x.first).length <= 1
+          : E.test === "tempo" ? (roundFeel.base ? (med(firstRts) != null && med(firstRts) < roundFeel.base * 0.9) : firstRts.length >= its.length / 2)
+          : E.test === "eerste" ? !!its[0].first
+          : E.test === "gok" ? !its.some(x => !x.first && x.rt < 1500)
+          : its.filter(x => !x.first).length <= 1;
+        let did = "";
+        if (pass && E.pass === "verder" && moved > 0) did = "verder";   // de motor zette de stap al: het vermoeden klopte
+        else if (pass && E.pass === "verder" && moved === 0 && !custom && T.stones[data.stage - 1].id === roundFeel.st && data.stage < T.stones.length){ data.stage++; moved = 1; data.cooldown = P.cooldownRounds; did = "verder"; }
+        else if (pass && E.pass === "flits"){ data.fade = data.fade || {}; data.fade[roundFeel.st] = 1; did = "flits"; }
+        const lab = PL.stem.label(T, (its.find(x => pass ? x.first : !x.first) || its[0]).item.key), g = PL.stem.genus(T);
+        res.feelMsg = E.kind === "makkelijk" ? (did === "verder" ? PL.stem.say("toets.verder", {item: lab, stap: T.stones[data.stage - 1].name, genus: g}, data.voice)
+            : did === "flits" ? PL.stem.say("toets.flits", {item: lab, genus: g}, data.voice) : pass ? "" : PL.stem.say("toets.niet", {item: lab, genus: g}, data.voice))
+          : PL.stem.say(pass ? "toets.pittig.ok" : "toets.pittig.nog", {item: lab, genus: g}, data.voice);
+        data.feelLog = (data.feelLog || []).concat([{d: today(), kind: E.kind, why: roundFeel.why, st: roundFeel.st, pass, did: did || undefined}]).slice(-50);
+        log({feelTest: roundFeel.why, st: roundFeel.st, pass: pass ? 1 : 0, did: did || undefined});
+        delete data.feel;
+      }
+    }
     S.rounds++; data.lastPlayed = new Date().toISOString(); S.first += res.first; S.steps += res.steps; S.items += total;
     if (!S.forms.includes(form)) S.forms.push(form);
     data.forms[form].rounds++;
@@ -2038,7 +2192,7 @@ PL.start = async function(T, opts){
       const bn = st.sig.breakNow(data, x.item.key, res.t0);   // de stand vóór deze ronde
       if (bn){ out.high = st.say("einde.doorbraak", {item: lab(x.item.key), eerder: st.dag(bn.eerder), genus: g, reg}, V); out.mustHave = lab(x.item.key); break; }
     }
-    const vanzelf = () => st.say("einde.vanzelf", {items: st.lijst(nkKeys.slice(0, 3).map(lab)), pl: nkKeys.length > 1, genus: g, reg}, V);
+    const vanzelf = () => st.say("einde.vanzelf", {items: st.kort(nkKeys.slice(0, 3).map(lab), nkKeys.length, st.noun(T)), pl: nkKeys.length > 1, genus: g, reg}, V);
     if (!out.high && nkKeys.length){ out.high = vanzelf(); out.mustHave = lab(nkKeys[0]); }
     else if (nkKeys.length) out.groei = vanzelf();
     if (!out.high){ const x = res.items.find(x => x.requeue && x.first); if (x){ out.high = st.say("einde.terugok", {item: lab(x.item.key), genus: g, reg}, V); out.mustHave = lab(x.item.key); } }
@@ -2047,7 +2201,7 @@ PL.start = async function(T, opts){
     const today_ = realSessions(data).filter(s => s.d === tIso).reduce((a, s) => a + (s.rounds || 0), 0);
     if (!out.groei) out.groei = st.say("einde.tuin", {ronde: st.rang(Math.max(1, today_)), training: T.title, reg}, V);
     const back = [...new Set(res.items.filter(x => !x.first && !res.items.some(y => y.requeue && y.first && y.item.key === x.item.key)).map(x => x.item.key))];
-    if (back.length) out.morgen = st.say("einde.morgen", {items: st.lijst(back.slice(0, 3).map(lab)), pl: back.length > 1, dagT: st.dagT(dayNum(tIso) + 1), genus: g, reg}, V);
+    if (back.length) out.morgen = st.say("einde.morgen", {items: st.kort(back.slice(0, 3).map(lab), back.length, st.noun(T)), pl: back.length > 1, dagT: st.dagT(dayNum(tIso) + 1), genus: g, reg}, V);
     const tired = st.sig.tired(S, res, P.sessionMin);
     if (tired.lang){ out.tired = true; out.lang = st.say("einde.lang", {minuten: st.aantal(tired.min, "minuten"), reg}, V); }
     return out;
@@ -2107,7 +2261,6 @@ PL.start = async function(T, opts){
     const tooLong = (Date.now() - S.t0) > P.sessionMin * 60000;
     let fact = "";
     if (!factShown && T.aiFact){ factShown = true; fact = `<p class="pl-fact"><b>Weetje over AI.</b> ${esc(T.aiFact)}</p>`; }
-    const R = lastRound.reacted, W = lastRound.why;
     route("klaar", true); app.classList.remove("pl-inround");
     // v0.11 (Peak-End): een kort feestje. Geen score: wat ze deed, wat erbij groeide, en één volgende stap.
     const V = lastRound.voice || {};   // v0.12: de stem (src/stem.js)
@@ -2116,18 +2269,14 @@ PL.start = async function(T, opts){
       <div class="pl-card pl-endcard">
         <div class="pl-endtop"><span class="pl-endflower" aria-hidden="true">${PL.flower(5, {stem: false})}</span><h2 class="pl-h2">Ronde klaar</h2></div>
         <div class="pl-cheer" id="pl-cheer" aria-live="polite">${esc(lastRound.cheer || lastRound.base)}</div>
+        ${res.feelMsg ? `<p class="pl-stemline pl-toets">${esc(res.feelMsg)}</p>` : ""}
         ${V.groei ? `<p class="pl-grow">${esc(V.groei)}</p>` : ""}
         <div class="pl-tuinwrap pl-tuin-onder" id="pl-endtuin" aria-hidden="true"></div>
         ${T.endExtra ? T.endExtra(ctx, res) : ""}
         <p class="pl-note pl-nextline"><b>Volgende ronde.</b> ${esc(lastRound.next)}</p>
         ${V.morgen ? `<p class="pl-note pl-stemline">${esc(V.morgen)}</p>` : ""}
         ${V.lang ? `<p class="pl-note pl-stemline">${esc(V.lang)}</p>` : ""}
-        <div class="pl-react" id="pl-react">
-          <span class="pl-note">Hoe ging het?</span>
-          <div class="pl-row" role="group" aria-label="Hoe ging het?">
-            ${["leuk", "gewoon", "pittig"].map(k => `<button class="pl-btn quiet pl-chipbtn" type="button" data-react="${k}" aria-pressed="${R === k}" ${R && R !== k ? "disabled" : ""}>${cap1(k)}</button>`).join("")}</div>
-          <div id="pl-why" aria-live="polite"></div>
-        </div>
+        <div class="pl-feelwrap"><span class="pl-note">Was iets te makkelijk of pittig? Dat mag je zeggen, hoeft niet.</span>${feelHTML("einde")}</div>
         ${fact}
         ${custom && !custom.all ? `<button class="pl-help" id="pl-make3" type="button">Iets anders kiezen</button>` : ""}
       </div>
@@ -2137,39 +2286,8 @@ PL.start = async function(T, opts){
         <button class="pl-btn quiet pl-full" id="pl-stop" type="button">Klaar voor vandaag</button>`}
       </div></div>`;
     allStates().then(st => { const b = $("pl-endtuin"); if (b && PL.tuin) PL.tuin(b, {states: st, strook: true}); });
-    const whyBox = $("pl-why");
-    function renderWhy(){
-      const R = lastRound.reacted, W = lastRound.why;
-      if (!R || R === "gewoon" || !PL.REASONS[R]){ whyBox.innerHTML = R === "gewoon" ? `<p class="pl-note">Dank je. Gewoon is ook goed om te weten.</p>` : ""; return; }
-      const Q = PL.REASONS[R];
-      if (W){
-        whyBox.innerHTML = `<p class="pl-note"><b>${esc(Q.opts.find(o => o[0] === W)[1])}.</b> ${esc(lastRound.reply || "")}</p>${lastRound.aiNote ? `<p class="pl-note">${esc(lastRound.aiNote)}</p>` : ""}`;
-        return;
-      }
-      whyBox.innerHTML = `<p class="pl-note">${esc(Q.q)}</p><div class="pl-chips pl-why" role="group" aria-label="${esc(Q.q)}">${Q.opts.map(([v, t]) => `<button type="button" class="pl-chip" data-why="${v}"><b>${esc(t)}</b></button>`).join("")}</div>`;
-      whyBox.querySelectorAll("[data-why]").forEach(b => b.addEventListener("click", () => {
-        if (lastRound.why) return;
-        const why = b.dataset.why, m = roundMeasure(res);
-        lastRound.why = why; S.why[R + ":" + why] = (S.why[R + ":" + why] || 0) + 1;
-        lastRound.reply = PL.reasonReply(R, why, m);
-        if (!aiNoteShown && why !== "weet"){ aiNoteShown = true; lastRound.aiNote = "Zo werkt het ook bij een AI: wat jij vertelt, verandert wat er daarna gebeurt."; }
-        if (lastRound.ev) Object.assign(lastRound.ev, {why, mode: m.mode || undefined});
-        const adj = PL.adjustFor(R, why, m);
-        if (adj){ data.adjust = Object.assign(adj, {st: res.stoneId, from: today()}); log({adjust: adj.kind, st: res.stoneId, mode: adj.mode || undefined}); }
-        if (R === "pittig" && why === "uitleg" && m.mode){ const st = data.expl[res.stoneId] || (data.expl[res.stoneId] = {}); st.avoid = m.mode; const x = st[m.mode] || (st[m.mode] = {ok: 0, no: 0, sw: 0}); x.no++; }
-        if (R === "leuk" && why === "snapte" && m.mode){ const st = data.expl[res.stoneId] || (data.expl[res.stoneId] = {}); const x = st[m.mode] || (st[m.mode] = {ok: 0, no: 0, sw: 0}); x.ok++; if (st.avoid === m.mode) delete st.avoid; }
-        save(); renderWhy();
-      }));
-    }
-    screen.querySelectorAll("[data-react]").forEach(b => b.addEventListener("click", () => {
-      if (lastRound.reacted) return; const k = b.dataset.react; lastRound.reacted = k; S.react[k] = (S.react[k] || 0) + 1;
-      const ev = {react: k, st: res.stoneId, f: form, fr: Math.round(res.fr * 100) / 100, steps: res.steps, re: res.reqN - res.reqOk, sw: res.switches, rt: median(res.rts), hint: res.hints, adj: res.adj || undefined};
-      log(ev); lastRound.ev = data.events[data.events.length - 1];
-      save();
-      screen.querySelectorAll("[data-react]").forEach(x => { x.disabled = x !== b; x.setAttribute("aria-pressed", String(x === b)); });
-      renderWhy();
-    }));
-    renderWhy();
+    if (!feelStone) feelStone = res.stoneId;
+    wireFeel();
     $("pl-again").addEventListener("click", () => { S.again++; data.forms[form].again++; if (lastRound.ev) lastRound.ev.again = 1; if (T.onAgain) try { T.onAgain(ctx); } catch(e){} save(); playRound(true); });
     const mk = $("pl-make3"); if (mk) mk.addEventListener("click", () => showMake());
     $("pl-stop").addEventListener("click", showBye);
@@ -2277,13 +2395,16 @@ function wireParent(T, states, H){
       <h2 class="pl-h2">Ouderscherm</h2>
       <p class="pl-note">Alleen voor jou. Patronen, geen conclusies.${T ? ` Trainingsstap nu: ${H.data.stage} van ${T.stones.length} (${esc(T.stones[H.data.stage - 1].name)}).` : ""}</p>
       ${T ? `<div class="pl-table-wrap"><table class="pl-table"><thead><tr><th>Steen</th><th>Beheersing</th><th>Tempo</th><th>Vragen</th><th>In één keer</th><th>Vlot (≤ ${P.fluentMs / 1000} s)</th><th>Mediaan s</th></tr></thead><tbody>${stoneRows}</tbody></table></div>` : ""}
-      <div class="pl-table-wrap"><table class="pl-table"><thead><tr><th>Week van</th><th>Training</th><th>Sessies</th><th>Min</th><th>Rondes</th><th>Nog een keer</th><th>In één keer</th><th>Vlot</th><th>Tussenstappen</th><th>Regel bekeken</th><th>Mediaan s</th><th>Leuk / gewoon / pittig</th></tr></thead>
-        <tbody>${weekly.rows.length ? weekly.rows.map(w => `<tr><td>${w.week}</td><td>${esc(w.training)}</td><td>${w.sessions}</td><td>${w.min}</td><td>${w.rounds}</td><td>${w.again}</td><td>${w.first}/${w.items}</td><td>${w.fluent}</td><td>${w.steps}</td><td>${w.rules || 0}</td><td>${w.medianRt != null ? (w.medianRt / 1000).toFixed(1) : ""}</td><td>${w.leuk} / ${w.gewoon || 0} / ${w.pittig}</td></tr>`).join("") : `<tr><td colspan="11">Nog geen sessies.</td></tr>`}</tbody></table></div>
+      <div class="pl-table-wrap"><table class="pl-table"><thead><tr><th>Week van</th><th>Training</th><th>Sessies</th><th>Min</th><th>Rondes</th><th>Nog een keer</th><th>In één keer</th><th>Vlot</th><th>Tussenstappen</th><th>Regel bekeken</th><th>Mediaan s</th><th>Te makkelijk / pittig</th></tr></thead>
+        <tbody>${weekly.rows.length ? weekly.rows.map(w => `<tr><td>${w.week}</td><td>${esc(w.training)}</td><td>${w.sessions}</td><td>${w.min}</td><td>${w.rounds}</td><td>${w.again}</td><td>${w.first}/${w.items}</td><td>${w.fluent}</td><td>${w.steps}</td><td>${w.rules || 0}</td><td>${w.medianRt != null ? (w.medianRt / 1000).toFixed(1) : ""}</td><td>${w.makkelijk || 0} / ${w.pittig}</td></tr>`).join("") : `<tr><td colspan="11">Nog geen sessies.</td></tr>`}</tbody></table></div>
       <p class="pl-note"><b>Per vorm:</b> ${esc(weekly.formsText || "nog niets")}</p>
       <p class="pl-note"><b>Vaakst een tussenstap:</b> ${esc(weekly.hardText || "nog niets")}</p>
       <h3 class="pl-h3">Leuk en pittig: reden naast meting</h3>
       <p class="pl-note">Per keuze: hoe vaak, hoe de ronde volgens de meting ging, en of gevoel en meting kloppen. Eén keer zegt niets; kijk naar weken.</p>
       <pre class="pl-pre">${esc(weekly.reactText || "Nog geen reacties met een reden.")}</pre>
+      <h3 class="pl-h3">Te makkelijk en pittig: wat de toets liet zien</h3>
+      <p class="pl-note">Elke reden is een vermoeden; de volgende ronde toetst het. Snelle klikken (binnen 0,7 s) en redenen die drie keer niet klopten, doen niets.</p>
+      <pre class="pl-pre">${esc(weekly.feelText || "Nog geen Te makkelijk of Pittig met een reden.")}</pre>
       <h3 class="pl-h3">Uitleg: welke vorm landt?</h3>
       <p class="pl-note">Een uitleg "landt" als dezelfde vraag even later in één keer lukt. Observaties per steen, geen leerstijl.</p>
       <pre class="pl-pre">${esc(weekly.explText || "Nog geen tussenstappen met een terugkomende vraag.")}</pre>
@@ -2385,7 +2506,7 @@ PL.weekly = function(all, trainingsList){
     for (const s of realSessions(d)){
       const w = weeks[weekKey(s.d)] || (weeks[weekKey(s.d)] = {week: weekKey(s.d), training: name, sessions: 0, min: 0, rounds: 0, again: 0, steps: 0, first: 0, items: 0, fluent: 0, leuk: 0, gewoon: 0, pittig: 0, rules: 0, rts: []});
       w.sessions++; w.min += s.min || 0; w.rounds += s.rounds || 0; w.again += s.again || 0; w.steps += s.steps || 0; w.first += s.first || 0; w.items += s.items || 0;
-      w.leuk += (s.react && s.react.leuk) || 0; w.pittig += (s.react && s.react.pittig) || 0; w.gewoon += (s.react && s.react.gewoon) || 0;
+      w.leuk += (s.react && s.react.leuk) || 0; w.makkelijk = (w.makkelijk || 0) + ((s.react && s.react.makkelijk) || 0); w.pittig += (s.react && s.react.pittig) || 0; w.gewoon += (s.react && s.react.gewoon) || 0;
     }
     for (const e of d.events || []){
       if (e.react){ const key = e.react + (e.why ? " / " + e.why : ""); const r = reacts[key] || (reacts[key] = {n: 0, fr: [], again: 0, labels: {}}); r.n++; if (e.fr != null) r.fr.push(e.fr); if (e.again) r.again++; const c = PL.classifyReact(e); r.labels[c] = (r.labels[c] || 0) + 1; continue; }
@@ -2410,14 +2531,22 @@ PL.weekly = function(all, trainingsList){
   const formsText = Object.entries(byForm).map(([k, f]) => `${k}: ${f.n} vragen, ${Math.round(100 * f.ok / Math.max(1, f.n))}% in één keer, mediaan ${f.rts.length ? (median(f.rts) / 1000).toFixed(1) : "-"} s`).join("; ");
   const hardText = Object.entries(hard).sort((a, b) => b[1].st - a[1].st).slice(0, 8).map(([k, r]) => `${k} (${r.st}x tussenstap, ${r.ok1}x in één keer)`).join("; ");
   const reactText = Object.entries(reacts).sort((a, b) => b[1].n - a[1].n).map(([k, r]) => `${k}: ${r.n}x${r.fr.length ? `, in die rondes gemiddeld ${Math.round(100 * r.fr.reduce((a, b) => a + b, 0) / r.fr.length)}% in één keer` : ""}${r.again ? `, ${r.again}x daarna nog een keer` : ""} (${Object.entries(r.labels).map(([l, n]) => n > 1 ? `${l} ${n}x` : l).join("; ")})`).join("\n");
-  return {rows, formsText, hardText, byForm, reactText, explText: expl.join("\n"), stoneText: stoneLines.join("\n"), adjText: adjs.slice(-8).join("; ")};
+  const feelLines = [];
+  for (const id of Object.keys(all)){ const d = all[id]; if (!d) continue; const T = trainingsList.find(t => t.id === id); const name = T ? T.title : id;
+    const set = T ? PL.feelSet(T) : null, txt = (k, w) => { const o = set && set[k] && set[k].find(x => x[0] === w); return o ? o[1] : w === "vraag" ? "Weet ik niet" : w; };
+    for (const e of (d.events || []).filter(e => e.feel || e.feelTest).slice(-30)){
+      if (e.feel) feelLines.push(`${(e.t || "").slice(0, 10)} ${name}: ${e.feel === "makkelijk" ? "Te makkelijk" : "Pittig"}, "${txt(e.feel, e.why)}"${e.fast ? " (snelle klik, niets gedaan)" : e.ign ? " (klopte drie keer niet, niets gedaan)" : ""}`);
+      else feelLines.push(`${(e.t || "").slice(0, 10)} ${name}: toets "${e.feelTest}" ${e.pass ? "klopte" : "klopte niet"}${e.did === "verder" ? ", een stap verder" : e.did === "flits" ? ", model kort" : ""}`);
+    } }
+  return {feelText: feelLines.slice(-20).join("\n"), rows, formsText, hardText, byForm, reactText, explText: expl.join("\n"), stoneText: stoneLines.join("\n"), adjText: adjs.slice(-8).join("; ")};
 };
 PL.weeklyText = function(w){
   return [`Leeratelier weekoverzicht (${today()})`,
-    ...w.rows.map(r => `Week van ${r.week}, ${r.training}: ${r.sessions} sessies, ${r.min} min, ${r.rounds} rondes, ${r.again}x nog een keer, ${r.first}/${r.items} in één keer, ${r.fluent} vlot (binnen 3 s), ${r.steps} tussenstappen, ${r.rules || 0}x de regel bekeken, mediaan ${r.medianRt != null ? (r.medianRt / 1000).toFixed(1) : "-"} s, reactie leuk ${r.leuk} / gewoon ${r.gewoon || 0} / pittig ${r.pittig}`),
+    ...w.rows.map(r => `Week van ${r.week}, ${r.training}: ${r.sessions} sessies, ${r.min} min, ${r.rounds} rondes, ${r.again}x nog een keer, ${r.first}/${r.items} in één keer, ${r.fluent} vlot (binnen 3 s), ${r.steps} tussenstappen, ${r.rules || 0}x de regel bekeken, mediaan ${r.medianRt != null ? (r.medianRt / 1000).toFixed(1) : "-"} s, te makkelijk ${r.makkelijk || 0} / pittig ${r.pittig}`),
     `Per vorm: ${w.formsText || "nog niets"}`,
     `Vaakst een tussenstap: ${w.hardText || "nog niets"}`,
     `Leuk/pittig met reden (naast meting):\n${w.reactText || "nog niets"}`,
+    `Te makkelijk / pittig met reden, en wat de toets liet zien:\n${w.feelText || "nog niets"}`,
     `Uitleg per steen en vorm (landt = vraag erna in één keer):\n${w.explText || "nog niets"}`,
     `Aanpassingen na een reden: ${w.adjText || "geen"}`,
     `Per steen (tempo-drempel ${P.fluentMs / 1000} s, alleen gemeten):\n${w.stoneText || "nog niets"}`,
@@ -2489,7 +2618,7 @@ const F = {
   "{Item} kwam er {dag} bij. Nu {v:gaat|gaan} er {aantal} vanzelf.",
   "Vanzelf: {aantal}. Het laatst {item}, {dag}.",
   "{aantal} in één keer, keer op keer. {Item} is de jongste.",
-  "Sinds {dag} zit {item} bij de {aantal} die vanzelf gaan.",
+  "pl: Sinds {dag} zit {item} bij de {aantal} die vanzelf gaan.",
   "{aantal} groeien hier. {Item} kwam {dag} op."]},
 "perk.bezig": {staat: "inzet", toon: "nuchter", r: "S9 S14 S18", v: [
   "Je trainde hier {dag}: {rondes}. Wat vaak in één keer lukt, gaat straks vanzelf.",
@@ -2554,6 +2683,53 @@ const F = {
   "{Dag} een ronde {training}. Daar komt iets op.",
   "Je tuin weet nog: {dag}, {training}.",
   "{Training}, {dag}: ook dat telt in je tuin."]},
+
+/* ---------------- v0.13 Te makkelijk / Pittig: wat de toets in de volgende ronde liet zien ---------------- */
+"toets.verder": {staat: "toets", toon: "warm", r: "S9 S13 S8 S18", v: [
+  "Je zei dat dit vanzelf ging. {Item} ging zonder hulp, dus nu: {stap}.",
+  "Klopt: {item} lukte zonder hulp. Daarom gaan we door naar {stap}.",
+  "Zonder hulp, en vlot: {item}. Je had gelijk; nu {stap}.",
+  "{Item} zonder hulp bevestigt het. Volgende stap: {stap}.",
+  "Je voelde het goed aan: {item} ging vanzelf. Op naar {stap}.",
+  "Getest en het klopt: {item} zonder hulp. Nu {stap}.",
+  "{Item} ging meteen, zonder hulp. Dan is {stap} aan de beurt.",
+  "Het ging zoals je zei: {item} vanzelf. We gaan verder met {stap}."]},
+"toets.flits": {staat: "toets", toon: "nuchter", r: "S9 S12 S18", v: [
+  "Het plaatje stond er maar even, en {item} lukte toch. Het mag korter blijven.",
+  "{Item} ging met het plaatje maar heel even. Dat houden we zo.",
+  "Je had het plaatje bijna niet nodig bij {item}. Het blijft kort.",
+  "Kort plaatje, en {item} ging zelf. Zo blijft het.",
+  "{Item} lukte met een kort plaatje. Je had gelijk.",
+  "Het plaatje flitste alleen, en {item} ging. Dat klopt dus.",
+  "Bij {item} was een kort plaatje genoeg. Zo doen we het nu.",
+  "{Item}: even kijken was genoeg. Het plaatje blijft kort."]},
+"toets.niet": {staat: "toets", toon: "rustig", r: "S6 S7 S15 S18", v: [
+  "Zonder hulp had {item} nog een tussenstap. De hulp blijft nog even.",
+  "{Item} ging zonder hulp nog niet helemaal. Je kunt het leren; de hulp blijft erbij.",
+  "Ik keek mee: bij {item} was de hulp nog handig. Die blijft dus.",
+  "{Item} vroeg zonder hulp nog wat denkwerk. Nog even met hulp.",
+  "Zonder hulp ging {item} via een omweg. De hulp blijft nog.",
+  "Bij {item} merkte ik dat hulp nog helpt. Dat is niet erg; het komt.",
+  "{Item} kostte zonder hulp nog moeite. We houden de hulp nog even vast.",
+  "Nog even met hulp: {item} ging zonder nog niet vanzelf."]},
+"toets.pittig.ok": {staat: "toets", toon: "warm", r: "S9 S12 S18", v: [
+  "Met de hulp erbij ging {item} vlotter dan eerst.",
+  "Je zei dat het pittig was. Met hulp ging {item} nu beter.",
+  "{Item} ging nu rustiger en zelf. De hulp deed zijn werk.",
+  "Dat hielp: {item} ging deze keer zonder tussenstap.",
+  "Met de regel erbij lukte {item}. Zo bouwen we verder.",
+  "{Item} ging beter dan vorige ronde. Goed dat je het zei.",
+  "Je vertelde wat pittig was, en {item} ging nu vlotter.",
+  "Rustiger aan werkte: {item} lukte."]},
+"toets.pittig.nog": {staat: "toets", toon: "rustig", r: "S6 S8 S12 S18", v: [
+  "{Item} is nog pittig, en je kunt het leren. De hulp blijft erbij.",
+  "Bij {item} helpt de hulp nog. We blijven er rustig aan werken.",
+  "{Item} vraagt nog tijd. Morgen staat het weer klaar, met hulp.",
+  "Nog niet vanzelf: {item}. Ik weet dat het komt.",
+  "{Item} was nog lastig. Stoppen mag; de hulp blijft.",
+  "Met hulp ging {item} nog via een tussenstap. Dat is trainen.",
+  "{Item} blijft even op het lijstje, met hulp erbij.",
+  "Bij {item} zijn we er nog niet. Je kunt het leren."]},
 
 /* ---------------- Resultatenkaart ---------------- */
 "kaart.laatste": {staat: "laatste", toon: "nuchter", r: "S16 S18", v: [
@@ -2905,6 +3081,9 @@ const HET = new Set(["woorden", "landen", "werkwoorden"]);
 S.getal = n => n >= 0 && n <= 20 ? GETAL[n] : String(n);
 S.rang = n => RANG[n] || n + "e";
 S.aantal = (n, noun) => `${S.getal(n)} ${n === 1 ? (EEN[noun] || noun) : noun}`;
+/* een lijst die past in een zin (≤ ± 48 tekens); de rest wordt "nog N …" */
+S.kort = (labels, total, noun, max) => { max = max || 38; const out = []; for (const l of labels){ if (out.length && (out.concat([l]).join(", ").length > max)) break; out.push(l); } const rest = (total || labels.length) - out.length; return S.lijst(rest > 0 ? out.concat(["nog " + S.aantal(rest, noun)]) : out); };
+S.noun = T => T.voiceNoun || T.noun;
 S.lijst = a => a.length < 2 ? (a[0] || "") : a.slice(0, -1).join(", ") + " en " + a[a.length - 1];
 const DAG = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"];
 const MAAND = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
@@ -2933,13 +3112,18 @@ const slotsOf = t => [...t.matchAll(/\{([A-Za-z]+)\}/g)].map(m => m[1].toLowerCa
 const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 function fill(t, sl){
   const pl = !!sl.pl, het = sl.genus === "het";
+  t = t.replace(/^(pl|ev):\s*/, "");
+  // eerst de vaste tekst: werkwoorden, voornaamwoorden, dagwoord-voorzetsels en hoofdletters aan het begin van een zin.
+  // Pas daarna de slots: een vraagteken ín een item ("5 = 2 + ?") maakt dan geen nieuwe zin (v0.12.1).
+  const vals = [];
   let s = t.replace(/\{v:([^|}]*)\|([^}]*)\}/g, (_, a, b) => pl ? b : a)
     .replace(/\{(hij|Hij|hem|Hem)\}/g, (_, w) => { const v = pl ? "ze" : het ? "het" : w.toLowerCase(); return w[0] === "H" ? cap(v) : v; })
-    .replace(/\{([A-Za-z]+)\}/g, (_, k) => { const v = sl[k.toLowerCase()]; return k[0] === k[0].toUpperCase() ? cap(String(v)) : String(v); });
-  // elke zin met een hoofdletter (een item als "7 × 8" blijft zoals het is)
+    .replace(/\{([A-Za-z]+)\}/g, (_, k) => { const v = String(sl[k.toLowerCase()]); vals.push(k[0] === k[0].toUpperCase() ? cap(v) : v); return "\u0001" + (vals.length - 1) + "\u0002"; });
+  s = s.replace(/(^|[.!?]\s+)([a-zàáäéëèïíóöúü])/g, (m, a, b) => a + b.toUpperCase());
+  s = s.replace(/\u0001(\d+)\u0002/g, (_, i) => vals[+i]);
   // dagwoorden passend maken bij het voorzetsel ervoor ("sinds in september" → "sinds september")
   s = s.replace(/\bsinds in /g, "sinds ").replace(/\bsinds een tijd terug\b/g, "al een tijd").replace(/\bvan in /g, "uit ").replace(/\btot over een paar weken\b/g, "over een paar weken").replace(/\bop vandaag\b/g, "vandaag");
-  return s.replace(/(^|[.!?]\s+)([a-zàáäéëèïíóöúü])/g, (m, a, b) => a + b.toUpperCase()).replace(/\s+/g, " ").trim();
+  return s.replace(/^([a-zàáäéëèïíóöúü])/, m => m.toUpperCase()).replace(/\s+/g, " ").trim();
 }
 /* register (S10): eerste ronde van de dag kort en licht; avond rustig (geen uitroepteken); na een doorbraak mag het energieker */
 function past(v, reg){ if (!reg) return true; if (reg === "kort") return v.t.length <= 64; if (reg === "rustig") return !v.t.includes("!"); return true; }
@@ -2947,7 +3131,8 @@ S.say = function(fam, slots, mem){
   const F = PL.STEM_FAM[fam]; if (!F) return "";
   mem = mem || S.mem; mem.recent = mem.recent || {}; mem.lines = mem.lines || [];
   const sl = {}; for (const [k, v] of Object.entries(slots || {})) sl[k.toLowerCase()] = v;
-  const ok = F.v.map((t, i) => ({t, id: fam + "#" + (i + 1)})).filter(v => slotsOf(v.t).every(k => sl[k] != null && sl[k] !== ""));
+  // "pl:" = alleen bij meervoud, "ev:" = alleen bij enkelvoud (v0.12.1: geen "de één zin die vanzelf gaan")
+  const ok = F.v.map((t, i) => ({t, id: fam + "#" + (i + 1)})).filter(v => slotsOf(v.t).every(k => sl[k] != null && sl[k] !== "") && !(/^pl:/.test(v.t) && !sl.pl) && !(/^ev:/.test(v.t) && sl.pl));
   if (!ok.length) return "";
   const rec = mem.recent[fam] || [];
   let cand = ok.filter(v => !rec.includes(v.id));
@@ -2975,7 +3160,7 @@ const labelRaw = (T, k) => {
   try { if (T.keyLabel) return T.keyLabel(k); } catch(e){}
   return k;
 };
-S.genus = T => HET.has(T.noun) ? "het" : "de";
+S.genus = T => HET.has(S.noun(T)) ? "het" : "de";
 
 /* ---------- signalen ---------- */
 const sig = S.sig = {};
@@ -4137,6 +4322,7 @@ const T = {
   canTitle: "Deze woorden schrijf ik goed",
   startText(ctx){ return ctx.data.sessions.length ? `We beginnen met woorden die je al goed schrijft. Daarna: ${STONES[ctx.stage - 1].name}.` : "Eén boom, twee bomen. Eén bal, twee ballen. We oefenen wanneer je één of twee letters schrijft."; },
   keyLabel: k => (BANK[k.slice(2)] || {mv: k}).mv,
+  voiceLabel: k => `"${(BANK[k.slice(2)] || {ev: k.slice(2)}).ev}"`,   // v0.12: de stem noemt het woord in het enkelvoud; het meervoud is het antwoord
   canDo(ctx){ return Object.keys(ctx.data.items).filter(k => ctx.known(k) && BANK[k.slice(2)]).map(k => BANK[k.slice(2)].mv).sort((a, b) => a.localeCompare(b, "nl")).slice(0, 60); },
 
   setup(ctx){ ctx.work.innerHTML = `<div class="pl-card sp-board"><div class="sp-head"><p class="sp-frame" id="sp-frame"></p>${ctx.canSay ? `<button type="button" class="pl-help" id="sp-say">Lees voor</button>` : ""}</div><div class="pl-row" id="sp-answer"></div><div class="sp-step" id="sp-step"></div></div>`; },
@@ -4336,12 +4522,16 @@ const T = {
   id: "werkwoorden", title: "Werkwoorden", version: "v0.6", noun: "werkwoorden", subject: "Spelling", glyph: "-t", tint: "#FBF1DC",
   practices: "werkwoorden goed schrijven: de stam, -t of -d, verleden tijd en voltooid deelwoord",
   helps: "schrijven met de goede d of t, de lijdende vorm en begrijpend lezen",
+  keyLabel,   // v0.12: ook voor het ouderscherm (was de ruwe sleutel)
+  voiceLabel: k => { const [kind, inf] = k.split(":"); return `"${inf}" (${kind === "tt" ? "tegenwoordige tijd" : kind === "vt" ? "verleden tijd" : kind === "vd" ? "voltooid deelwoord" : "bijvoeglijk"})`; },   // de stem: het werkwoord, nooit de vorm die ze moet typen
   stones: STONES, stoneOf, fromKey(k){ const [kind, inf, p] = k.split(":"); const v = vormen(inf); const s = p === "p" ? ["wij", "p"] : p === "1" ? ["ik", "1"] : p === "2" ? ["jij", "2"] : ["hij", "3"]; const hulp = hulpVan(inf, s); if (kind === "tt") return item(k, v, `${cap(s[0])} ___ ${NA[inf] || ""} (${inf})`, tt(v, s), "tt", s); if (kind === "vt") return item(k, v, `Gisteren ___ ${s[0]} ${NA[inf] || ""} (${inf})`, vt(v, s), "vt", s); if (kind === "vd") return item(k, v, `${cap(s[0])} ${hulp} ${NA[inf] || ""} ___ (${inf})`, v.vd, "vd", s); const d = DING.find(x => x[2] === inf) || ["de", "vaas", inf]; return item(k, v, `${d[0]} ___ ${d[1]} (${inf})`, bijv(v), "bv", null); },
   forms: { A: {name: "Met de stappen", desc: "Eerst de stam en 't kofschip in beeld, dan het woord."}, B: {name: "In één keer", desc: "Je typt het goede woord meteen."} },
   rules: it => REGELS[it.kind],
   _test: {vormen, bijv, REG, STERK, ZIN, DING, hulpVan, waarom, item},   // alleen voor tests/generatoren.js
   aiFact: "AI kan zich vergissen bij d en t, net als mensen. De regels hier staan in code, dus elk antwoord klopt.",
   canTitle: "Deze werkwoorden schrijf ik goed",
+  // v0.12: ontbrak (Mijn tuin in Werkwoorden gaf een fout): de vormen die vanzelf gaan, zoals ze ze schrijft
+  canDo(ctx){ const out = new Set(); for (const k of Object.keys(ctx.data.items)) if (ctx.known(k)){ try { const it = T.fromKey(k); if (it && it.ans) out.add(it.ans); } catch(e){} } return [...out].sort((a, b) => a.localeCompare(b, "nl")).slice(0, 60); },
   startText(ctx){ return ctx.data.sessions.length ? `We beginnen met wat al lukt. Daarna: ${STONES[ctx.stage - 1].name}.` : "Elke werkwoordsvorm begint bij de stam. Daar beginnen we."; },
   setup(ctx){
     ctx.work.innerHTML = `<div class="pl-card ww-board"><p class="ww-zin" id="ww-zin"></p><div class="ww-steps" id="ww-trail"></div>
@@ -4761,6 +4951,9 @@ const T = {
   id: "zinnen", title: "Zinnen", version: "v0.7", noun: "zinnen", subject: "Grammatica", glyph: "O", tint: "#E2F3E9",
   practices: "woordsoorten en zinsdelen herkennen in een zin",
   helps: "werkwoordspelling, begrijpend lezen en zelf schrijven",
+  voiceNoun: "woorden",   // v0.12: wat vanzelf gaat zijn woorden en zinsdelen, geen hele zinnen
+  keyLabel,   // v0.12: ook voor het ouderscherm (was de ruwe sleutel)
+  voiceLabel: k => { const p = k.split(":"); return p[0] === "s" ? `"${p[2]}" (${SOORT[p[1]] || "woordsoort"})` : keyLabel(k); },
   stones: STONES, stoneOf, fromKey: () => null,   // zinnen zijn elke keer nieuw; herhaling loopt via de steen
   forms: { A: {name: "Tik aan in de zin", desc: "Je ziet de zin en tikt het woord of het stuk aan."}, B: {name: "Kies de naam", desc: "Een stuk licht op; jij kiest hoe het heet."} },
   aiFact: "Deze zinnen maakt de code uit bouwstenen, zodat elk label zeker klopt. AI zou zinnen mooier maken, maar soms een label verkeerd hebben.",
