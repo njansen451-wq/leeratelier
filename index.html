@@ -437,6 +437,27 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 /* tijdens "Gelukt" is de invoer even rustig: één opvallende knop in beeld (Von Restorff) */
 .pl-round:has(.pl-sheet.open) .pl-keypad{opacity:.35;pointer-events:none}
 
+/* ======================= v0.12 — de stem (zie docs/onderbouwing.md) ======================= */
+.pl-ok-stem{margin:0;color:var(--pl-ink);font-family:var(--pl-display);font-size:1.05rem;line-height:1.35}
+.pl-rups{margin:0;font-family:var(--pl-display);font-size:1.12rem;line-height:1.4;color:var(--pl-ink)}
+.pl-stemline{margin:0;color:var(--pl-ink)}
+.pl-perken li{display:block;padding:0;background:none}
+.pl-perk{display:grid;grid-template-columns:1fr auto;grid-template-areas:"t c" "s c";gap:2px 10px;align-items:center;width:100%;text-align:left;border:1.5px solid var(--pl-line);background:var(--pl-paper);border-radius:14px;padding:10px 14px;min-height:56px;cursor:pointer;color:var(--pl-ink)}
+.pl-perk:hover{border-color:var(--pl-violet)}
+.pl-perk b{grid-area:t;font-family:var(--pl-display);font-weight:600}
+.pl-perk span:not(.pl-chev){grid-area:s;font-size:.92rem;color:var(--pl-ink-soft)}
+.pl-perk .pl-chev{grid-area:c;transform:rotate(45deg);transition:transform .2s}
+.pl-perk[aria-expanded="true"]{border-color:var(--pl-violet);background:var(--pl-surface)}
+.pl-perk[aria-expanded="true"] .pl-chev{transform:rotate(-135deg)}
+.pl-result{display:grid;gap:10px;padding:12px 4px 4px}
+.pl-perken .pl-result{padding:12px 14px 4px}
+.pl-resblock{display:grid;gap:2px}
+.pl-resblock h3{margin:0;font-family:var(--pl-body)}
+.pl-resblock p{margin:0;line-height:1.45}
+/* in de tuin: alleen de perken zijn aan te tikken (gras, licht en lucht laten de tik door) */
+.pl-tuinpagina .gd *{pointer-events:none}
+.pl-tuinpagina .gd .gd-bed{pointer-events:auto}
+
 /* De tuin v0.8: lagen (lucht, heuvels, wei, tuintjes, gras), licht volgens de klok, beweging die meegroeit (gd-t0 … gd-t3).
    Alleen transform, opacity en filter; bij "minder beweging" staat alles stil (core.css). Geen tekst. */
 .gd{opacity:0;transition:opacity .8s}
@@ -886,7 +907,7 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 </style>
 </head>
 <body>
-<!-- Leeratelier Leeratelier v0.11. Gebouwd op de Leeratelier-kern v0.11. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
+<!-- Leeratelier Leeratelier v0.12. Gebouwd op de Leeratelier-kern v0.12. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
 <main class="pl-app" id="pl-app"></main>
 
 
@@ -907,7 +928,7 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 (function(){
 "use strict";
 const PL = window.PL = {};
-PL.VERSION = "v0.11";
+PL.VERSION = "v0.12";
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -1163,8 +1184,21 @@ PL.greet = function(o){
 };
 PL._cap = cap1; PL._lst = lst;
 
+/* ---------- v0.12: stand v:3 → v:4. Alleen iets erbij (voice: wat de stem onlangs zei); alles van vroeger blijft staan. ---------- */
+PL.migrate4 = function(d){
+  if (!d) return d;
+  if ((d.v || 3) < 4) d.v = 4;
+  if (!d.voice || typeof d.voice !== "object") d.voice = {recent: {}, lines: []};
+  d.voice.recent = d.voice.recent || {}; d.voice.lines = d.voice.lines || [];
+  return d;
+};
+/* v0.12: wissen tellen (twijfel). Toets Wis of Backspace tijdens een vraag; de kern zet de teller per vraag op nul. */
+PL._cor = 0;
+document.addEventListener("click", e => { if (e.target.closest && e.target.closest('[data-k="wis"]')) PL._cor++; }, true);
+document.addEventListener("keydown", e => { if (e.key === "Backspace") PL._cor++; }, true);
+
 /* ---------- registratie en start ---------- */
-const trainings = [];
+const trainings = []; PL._trainings = trainings;
 PL.register = T => { trainings.push(T); };
 let store = null, content = null, saving = Promise.resolve();
 const CONTENT_KEY = "philearn-content";
@@ -1173,6 +1207,7 @@ PL.boot = async function(){
   const app = $("pl-app");
   app.innerHTML = `<div class="pl-card"><p class="pl-lead">Even laden…</p></div>`;
   [store] = await Promise.all([makeStore(), detectAI()]);
+  if (PL.stem) await PL.stem.loadMem(store);   // v0.12: wat de stem op Home en in de tuin onlangs zei
   PL._store = store;
   content = (await store.load(CONTENT_KEY)) || {packs: []};
   const {id, view} = parseHash();
@@ -1196,7 +1231,7 @@ PL.growthOf = function(T, d){
   const ss = realSessions(d), known = Object.values((d && d.items) || {}).filter(knownRec).length;
   const last = ss.length ? ss[ss.length - 1].d : "";
   return {sessions: ss.length, known, last, status: ss.length ? whenText(last) : "Nieuw",
-    text: known ? `${known} ${nounN(known, T.noun)} ${known === 1 ? "gaat" : "gaan"} al vanzelf.` : ss.length ? "Wat vanzelf gaat, groeit mee met elke ronde." : ""};
+    text: known ? `${cap1(PL.stem.aantal(known, T.noun))} ${known === 1 ? "gaat" : "gaan"} al vanzelf.` : ""};   // v0.12: getallen tot twintig voluit; geen zin zonder feit
 };
 /* Zeigarnik: een ronde die halverwege verlaten is, blijft staan (data.open) tot ze hem afmaakt; ouder dan 3 dagen telt niet. */
 const openRound = d => { const o = d && d.open; if (!o || !o.q || !o.q.length) return null; if (dayNum(today()) - dayNum((o.d || "").slice(0, 10)) > 3) return null; return o; };
@@ -1230,7 +1265,7 @@ function groupGrowth(G, states){
   const codes = new Set(), ss = [];
   for (const m of G.members){ ss.push(...realSessions(states[m.id])); for (const [k, r] of Object.entries((states[m.id] && states[m.id].items) || {})) if (knownRec(r)) codes.add(k.slice(k.indexOf(":") + 1)); }
   const last = ss.map(s => s.d).sort().pop() || "", known = codes.size;
-  return {sessions: ss.length, known, last, status: ss.length ? whenText(last) : "Nieuw", text: known ? `${known} ${nounN(known, "landen")} ${known === 1 ? "gaat" : "gaan"} al vanzelf.` : ss.length ? "Wat vanzelf gaat, groeit mee met elke ronde." : ""};
+  return {sessions: ss.length, known, last, status: ss.length ? whenText(last) : "Nieuw", text: known ? `${cap1(PL.stem.aantal(known, "landen"))} ${known === 1 ? "gaat" : "gaan"} al vanzelf.` : ""};
 }
 function rowHTML(R, states, todayId, make){
   const isG = !!R.isGroup, pr = isG ? groupGrowth(R, states) : PL.growthOf(R, states[R.id]);
@@ -1316,10 +1351,29 @@ PL.home = async function(){
   const cand = trainings.filter(T => played(T).length);
   const last = cand.slice().sort((a, b) => dueCount(b) - dueCount(a) || lastDay(b).localeCompare(lastDay(a)))[0] || trainings[0];
   const ld = lastDay(last), ago = ld ? dn - dayNum(ld) : null;
-  const why = !cand.length ? "Hier begin je. De basis komt eerst." : dueCount(last) ? "Omdat er iets klaarstaat om te herhalen." : ago === 0 ? "Omdat je hier vandaag al trainde." : ago === 1 ? "Omdat je hier gisteren trainde." : "Omdat je hier de vorige keer trainde.";
+  let why = !cand.length ? "Hier begin je. De basis komt eerst." : dueCount(last) ? "Omdat er iets klaarstaat om te herhalen." : ago === 0 ? "Omdat je hier vandaag al trainde." : ago === 1 ? "Omdat je hier gisteren trainde." : "Omdat je hier de vorige keer trainde.";
   const todayT = open ? open.T : last;
+  // v0.12 (S10, S14, S18): de reden voor Vandaag en de regel bij de tuin komen uit de stand
+  const st = PL.stem, mem = st.mem;
+  {
+    const dl = states[last.id], lab = k => st.label(last, k), g = st.genus(last);
+    const sinceAll = Math.min(...trainings.map(T => st.sig.daysSince(states[T.id])).filter(x => x != null), 999);
+    const reg = new Date().getHours() >= 19 ? "rustig" : "";
+    let w = "";
+    if (!cand.length) w = st.say("home.eerste", {training: last.title, stap: last.stones[0].name, reg}, mem);
+    else if (sinceAll >= 5 && sinceAll < 999){ const nk = st.sig.newestKnown(dl) || st.sig.lastItem(dl); if (nk) w = st.say("home.pauze", {item: lab(nk.k), genus: g, reg}, mem); }
+    if (!w && cand.length){ const dk = st.sig.dueToday(dl); w = dk.length ? st.say("home.due", {items: st.lijst(dk.slice(0, 3).map(lab)), pl: dk.length > 1, genus: g, reg}, mem) : st.say("home.laatst", {dag: st.dag(ld), stap: last.stones[Math.max(0, (dl.stage || 1) - 1)].name, reg}, mem); }
+    if (w) why = w;
+  }
   homeFrame(app, "Leeratelier", false);
-  const grown = grownLine(states);
+  let grown = "";
+  {
+    const nks = trainings.map(T => ({T, nk: st.sig.newestKnown(states[T.id])})).filter(x => x.nk && x.nk.d).sort((a, b) => b.nk.d.localeCompare(a.nk.d));
+    const ls = trainings.map(T => ({T, s: st.sig.lastSession(states[T.id])})).filter(x => x.s && x.s.d).sort((a, b) => b.s.d.localeCompare(a.s.d));
+    if (nks.length) grown = st.say("home.teaser", {item: st.label(nks[0].T, nks[0].nk.k), dag: st.dag(nks[0].nk.d), genus: st.genus(nks[0].T)}, mem);
+    else if (ls.length) grown = st.say("home.teaser.bezig", {training: ls[0].T.groupTitle || ls[0].T.title, dag: st.dag(ls[0].s.d)}, mem);
+    st.saveMem(store);
+  }
   const anyRound = trainings.some(T => played(T).length);
   const sec = app.querySelector(".pl-screen");
   sec.classList.add("pl-home");
@@ -1365,20 +1419,77 @@ PL.home = async function(){
   $("pl-make").addEventListener("click", () => showHomeMake(states));
   wireParent(null, states);
 };
+/* ---------- v0.12 resultatenkaart: Laatste keer (S16), Komt terug (S14), Wat jij deed (S5, S9, S12), Uitleg (S12).
+   Alleen zinnen met een feit uit de stand (S18); geen blok zonder feit (S11). ---------- */
+function resultBlocks(T, d, mem){
+  const st = PL.stem, sig = st.sig, g = st.genus(T), lab = k => st.label(T, k), blocks = [];
+  const last = sig.lastSession(d); if (!last) return [];
+  const bt = sig.breakthroughs(d).filter(b => b.dag === last.d)[0], li = sig.lastItem(d);
+  blocks.push(["Laatste keer", [bt ? st.say("kaart.doorbraak", {item: lab(bt.k), eerder: st.dag(bt.eerder), dag: st.dag(bt.dag), genus: g}, mem)
+    : st.say("kaart.laatste", {dag: st.dag(last.d), rondes: st.aantal(sig.roundsOn(d, last.d), "rondes"), item: li ? lab(li.k) : ""}, mem)]]);
+  const sc = sig.schedule(d), terug = [];
+  for (const gp of sc.soon.slice(0, 2)) terug.push(st.say("kaart.terug", {dagT: st.dagT(gp.n), items: st.lijst(gp.ks.slice(0, 3).map(lab).concat(gp.ks.length > 3 ? ["nog " + st.aantal(gp.ks.length - 3, T.noun)] : [])), pl: gp.ks.length > 1, genus: g}, mem));
+  if (sc.rest.length) terug.push(st.say("kaart.rust", {aantal: st.aantal(sc.rest.length, T.noun), dagT: st.dagT(sc.rest[0].due), pl: sc.rest.length > 1, genus: g}, mem));
+  if (terug.filter(Boolean).length) blocks.push(["Komt terug", terug.filter(Boolean)]);
+  const deed = [], hd = sig.helpDrop(d)[0];
+  if (hd) deed.push(st.say("kaart.hulp", {item: lab(hd.k), eerder: st.dag(hd.eerder), dag: st.dag(hd.dag), genus: g}, mem));
+  const fa = sig.faster(d).filter(x => !hd || x.k !== hd.k)[0];
+  if (fa && fa.dag !== fa.eerder) deed.push(st.say("kaart.tempo", {item: lab(fa.k), eerder: st.dag(fa.eerder), dag: st.dag(fa.dag), genus: g}, mem));
+  const rw = sig.roundsWeek(d); if (rw >= 2 && deed.length < 2) deed.push(st.say("kaart.afmaken", {rondes: st.aantal(rw, "rondes")}, mem));
+  const lf = d.lastForm || "A", fr = (d.forms && d.forms[lf] && d.forms[lf].rounds) || 0;
+  if (fr >= 2 && deed.length < 2 && T.forms[lf]) deed.push(st.say("kaart.vorm", {vorm: `"${T.forms[lf].name}"`, rondes: st.aantal(fr, "rondes")}, mem));
+  if (deed.filter(Boolean).length) blocks.push(["Wat jij deed", deed.filter(Boolean)]);
+  const u = sig.uitleg(d)[0];
+  if (u){ const mode = (T.explainNames && T.explainNames[u.mode]) || (u.mode === "standaard" ? "de tussenstap" : u.mode); const z = st.say(u.ok ? "kaart.uitleg" : "kaart.uitleg.nog", {item: lab(u.k), mode, genus: g}, mem); if (z) blocks.push(["Uitleg", [z]]); }
+  return blocks;
+}
+PL._resultBlocks = resultBlocks;
+const resultHTML = blocks => blocks.map(([h, ls]) => `<section class="pl-resblock"><h3 class="pl-eyebrow">${esc(h)}</h3>${ls.map(l => `<p>${esc(l)}</p>`).join("")}</section>`).join("");
+/* de regel onder de tuin per training (perk): wat al vanzelf gaat en wat het laatst bijkwam; leeg perk: een uitnodiging */
+function perkLine(T, d, mem){
+  const st = PL.stem, sig = st.sig, g = st.genus(T), n = sig.knownCount(d), nk = sig.newestKnown(d), last = sig.lastSession(d);
+  const title = T.isGroup ? T.title : T.title;
+  if (!last) return st.say("perk.leeg", {training: title}, mem);
+  if (n && nk) return st.say("perk.groei", {aantal: st.aantal(n, T.noun), item: st.label(T, nk.k), dag: st.dag(nk.d), pl: n > 1, genus: g}, mem);
+  return st.say("perk.bezig", {dag: st.dag(last.d), rondes: st.aantal(realSessions(d).reduce((a, s) => a + (s.rounds || 0), 0), "rondes"), stap: T.stones[Math.max(0, (d.stage || 1) - 1)].name}, mem);
+}
+/* van een rij op home (training of groep) naar de training met de meest recente stand */
+const rowTraining = (R, states) => !R.isGroup ? R : R.members.slice().sort((a, b) => ((PL.stem.sig.lastSession(states[b.id]) || {}).d || "").localeCompare(((PL.stem.sig.lastSession(states[a.id]) || {}).d || "")))[0];
+
 /* Mijn tuin vanaf home (#tuin): de hele tuin, en in woorden wat vanzelf gaat. In de tuin zelf staat geen tekst. */
-async function showHomeGarden(states, fromRoute){
+async function showHomeGarden(states, fromRoute, openId){
   states = states || await loadStates();
   const app = $("pl-app"); homeFrame(app, "Mijn tuin", true);
-  if (!fromRoute) setRoute("tuin");
-  const sec = app.querySelector(".pl-screen");
-  const lines = listRows().map(R => { const pr = R.isGroup ? groupGrowth(R, states) : PL.growthOf(R, states[R.id]); return pr.sessions ? `<li><b>${esc(R.title)}</b><span>${esc(pr.text)}</span></li>` : ""; }).join("");
-  sec.innerHTML = `<div class="pl-card pl-narrow" style="display:grid;gap:12px">
+  if (!fromRoute) setRoute("tuin" + (openId ? "/" + openId : ""));
+  const sec = app.querySelector(".pl-screen"), st = PL.stem, mem = st.mem;
+  // v0.12: één regel van de rups over het geheel, alleen met een feit (S9, S18)
+  const top = st.sig.weekTop(states, trainings);
+  let rups = "";
+  const groei = trainings.map(T => ({T, nk: st.sig.newestKnown(states[T.id])})).filter(x => x.nk && x.nk.d && dayNum(today()) - dayNum(x.nk.d) < 7).sort((a, b) => b.nk.d.localeCompare(a.nk.d))[0];
+  const door = trainings.map(T => ({T, b: st.sig.breakthroughs(states[T.id], new Date(Date.now() - 6 * 864e5).toISOString().slice(0, 10))[0]})).filter(x => x.b).sort((a, b) => (b.b.t || "").localeCompare(a.b.t || ""))[0];
+  if (door) rups = st.say("rups.doorbraak", {item: st.label(door.T, door.b.k), dag: st.dag(door.b.dag), eerder: st.dag(door.b.eerder), training: door.T.groupTitle || door.T.title, genus: st.genus(door.T)}, mem);
+  else if (groei && (!top || Math.random() < .5)) rups = st.say("rups.groei", {item: st.label(groei.T, groei.nk.k), dag: st.dag(groei.nk.d), training: groei.T.groupTitle || groei.T.title, genus: st.genus(groei.T)}, mem);
+  else if (top) rups = st.say("rups.week", {training: top.T.groupTitle || top.T.title, rondes: st.aantal(top.n, "rondes")}, mem);
+  const rows = listRows().map(R => { const T = rowTraining(R, states); return {R, T, line: perkLine(Object.assign(Object.create(T), {title: R.title}), states[T.id], mem)}; });
+  sec.innerHTML = `<div class="pl-card pl-narrow pl-tuinpagina" style="display:grid;gap:12px">
+      ${rups ? `<p class="pl-rups" aria-live="polite">${esc(rups)}</p>` : ""}
       <div class="pl-tuinwrap" id="pl-tuin"></div>
-      ${lines ? `<ul class="pl-grownlist">${lines}</ul>` : `<p class="pl-lead">Hier groeit je tuin. Maak je eerste ronde af, dan komt er iets op. Elke training heeft zijn eigen plekje.</p>`}
-    </div>
-    <div class="pl-actions"><button class="pl-btn quiet pl-full" id="pl-tuin-back" type="button">Terug</button></div>`;
-  $("pl-tuin-back").addEventListener("click", () => { setRoute(""); PL.home(); });
-  if (PL.tuin) PL.tuin($("pl-tuin"), {states: mergeGroups(states)});
+      <ul class="pl-grownlist pl-perken">${rows.map(({R, line}) => `<li><button type="button" class="pl-perk" data-perk="${esc(R.id)}" aria-expanded="false" aria-controls="pl-res-${esc(R.id)}"><b>${esc(R.title)}</b><span>${esc(line)}</span><span class="pl-chev" aria-hidden="true"></span></button><div class="pl-result" id="pl-res-${esc(R.id)}" aria-live="polite" hidden></div></li>`).join("")}</ul>
+    </div>`;
+  const open = id => {
+    sec.querySelectorAll(".pl-perk").forEach(b => { const on = b.dataset.perk === id && b.getAttribute("aria-expanded") !== "true"; b.setAttribute("aria-expanded", String(on)); const box = $("pl-res-" + b.dataset.perk); box.hidden = !on;
+      if (on){ const x = rows.find(r => r.R.id === b.dataset.perk), bl = resultBlocks(x.T, states[x.T.id], mem); box.innerHTML = bl.length ? resultHTML(bl) + `<button type="button" class="pl-help" data-go="${esc(x.T.id)}">Naar ${esc(x.R.title)}</button>` : `<p>${esc(x.line)}</p><button type="button" class="pl-help" data-go="${esc(x.T.id)}">Naar ${esc(x.R.title)}</button>`;
+        box.querySelector("[data-go]").addEventListener("click", e => { const t = trainings.find(t => t.id === e.currentTarget.dataset.go); setRoute(t.id); PL.start(t, {routed: true}); }); } });
+    try { history.replaceState({pl: 1}, "", "#tuin" + (id ? "/" + id : "")); } catch(e){}
+    st.saveMem(store);
+  };
+  sec.querySelectorAll(".pl-perk").forEach(b => b.addEventListener("click", () => open(b.dataset.perk)));
+  if (PL.tuin) PL.tuin($("pl-tuin"), {states: mergeGroups(states)}).then(() => {
+    // een perk in de tuin aantikken opent dezelfde kaart (europa = het perk van Landen van de wereld)
+    sec.querySelectorAll("#pl-tuin [data-bed]").forEach(bed => { bed.style.cursor = "pointer"; bed.addEventListener("click", () => { const id = bed.dataset.bed, R = listRows().find(r => r.id === id || (r.isGroup && r.members.some(m => m.id === id))); if (R){ open(R.id); const el = sec.querySelector(`[data-perk="${R.id}"]`); if (el) el.scrollIntoView({block: "nearest", behavior: "smooth"}); } }); });
+  });
+  if (openId) open(openId);
+  st.saveMem(store);
   wireParent(null, states);
 }
 /* Bedenk je ronde vanaf home (#bedenk): eerst de training kiezen (Tesler: de keuze zit ook in elke training) */
@@ -1397,7 +1508,7 @@ async function showHomeMake(states, fromRoute){
 PL.homeRoute = function(id, view){
   const G = listRows().find(r => r.isGroup && r.route === id);
   if (G) return showGroup(G.id, view === "bedenk", null, true);
-  if (id === "tuin") return showHomeGarden(null, true);
+  if (id === "tuin") return showHomeGarden(null, true, view || null);
   if (id === "bedenk") return showHomeMake(null, true);
   return PL.home();
 };
@@ -1443,6 +1554,7 @@ PL.start = async function(T, opts){
   // het antwoord toonde (A2) wordt niet meegenomen
   data.sessions = realSessions(data);
   if ((data.v || 2) < 3){ if (["werkwoorden", "europa", "spelling-een-of-twee", "zinnen"].includes(T.id)){ data.expl = {}; data.explPending = {}; } data.v = 3; }
+  PL.migrate4(data);
   const lastReal = data.sessions[data.sessions.length - 1];
   const prevPlayed = lastReal ? lastReal.d : "";
   if (T.migrate) T.migrate(data);   // een training die stenen toevoegt, zet de stand om (Zinnen v0.7)
@@ -1450,6 +1562,7 @@ PL.start = async function(T, opts){
   const S = {d: today(), t0: Date.now(), min: 0, rounds: 0, again: 0, steps: 0, first: 0, items: 0, forms: [], react: {leuk: 0, gewoon: 0, pittig: 0}, why: {}};
   let sessionAdded = false, form = data.lastForm || "A", lastRound = null, factShown = false, wheelRun = 0, wheelCount = 0, custom = null;
   let wiseShown = false, aiNoteShown = false, roundAdj = null, tried = null;
+  let cur_ = null, okVoice = () => "";   // v0.12: de vraag die nu loopt (voor de stem na "Gelukt")
   /* tijdens een ronde staat "Laat zien" (het scherm voor papa of je zus) niet in de kop: hulp bij de vraag zit in de ronde zelf */
   const topBtn = on => { const b = $("pl-garden-btn"); if (b) b.hidden = on; };
   let rulesShow = () => {};   // wordt per ronde gezet (playRound)
@@ -1534,8 +1647,8 @@ PL.start = async function(T, opts){
     /* feedback: drie vaste vormen. Tijdens een tussenstap blijft haar eigen antwoord in beeld (C3): fb.tried(waarde). */
     fb: {
       // v0.11: "Gelukt" komt in een vaste strook onderin (geen verspringende inhoud), met een zacht toontje
-      ok(text){ tried = null; $("pl-fb").innerHTML = ""; const sh = $("pl-sheet"); if (!sh) return; sh.innerHTML = `<div class="pl-ok" role="status"><p class="pl-ok-text"><b>Gelukt</b>${esc(text)}</p></div>`; sh.hidden = false; requestAnimationFrame(() => sh.classList.add("open")); if (!(T.sound && T.sound.ownFeedback)) PL.chime(); },
-      step(text){ rulesShow(true); ctx.fb.clearSheet(); $("pl-fb").innerHTML = `<div class="pl-step">${tried != null ? `<span class="pl-tried">Jouw antwoord: ${esc(tried)}</span>` : ""}<b>Tussenstap</b>${esc(text)}</div>`; },
+      ok(text){ tried = null; $("pl-fb").innerHTML = ""; const sh = $("pl-sheet"); if (!sh) return; const extra = okVoice(); sh.innerHTML = `<div class="pl-ok" role="status"><p class="pl-ok-text"><b>Gelukt</b>${esc(text)}</p>${extra ? `<p class="pl-ok-stem">${esc(extra)}</p>` : ""}</div>`; sh.hidden = false; requestAnimationFrame(() => sh.classList.add("open")); if (!(T.sound && T.sound.ownFeedback)) PL.chime(); },
+      step(text){ rulesShow(true); cur_.step = true; ctx.fb.clearSheet(); $("pl-fb").innerHTML = `<div class="pl-step">${tried != null ? `<span class="pl-tried">Jouw antwoord: ${esc(tried)}</span>` : ""}<b>Tussenstap</b>${esc(text)}</div>`; },
       tried(v){ tried = v; },
       clearSheet(){ const sh = $("pl-sheet"); if (sh && !sh.hidden){ sh.classList.remove("open"); sh.hidden = true; sh.innerHTML = ""; } },
       note(text){ ctx.fb.clearSheet(); $("pl-fb").innerHTML = `<p class="pl-note">${esc(text)}</p>`; },
@@ -1548,7 +1661,28 @@ PL.start = async function(T, opts){
     const dn = dayNum(today()), last = prevPlayed ? dayNum(prevPlayed.slice(0, 10)) : null;
     const dueN = Object.keys(data.items).filter(k => due(k) && data.items[k].last === "ok").length;
     const a = data.adjust;
-    return PL.greet({first: !data.sessions.length, hour: new Date().getHours(), daysSince: last == null ? null : dn - last, adjust: a && a.kind, adjName: a && a.mode ? ctx.modeName(a.mode) : "", due: dueN > 0});
+    // v0.12: een aanpassing na "pittig" blijft (die komt uit haar eigen reden); de rest zegt de stem (introVoice)
+    const g = PL.greet({first: !data.sessions.length, hour: new Date().getHours(), daysSince: null, adjust: a && a.kind, adjName: a && a.mode ? ctx.modeName(a.mode) : "", due: false});
+    if (!g.note) g.note = introVoice();
+    return g;
+  }
+  /* v0.12 startscherm (S2, S8, S10, S14, S18): wat terugkomt, welke vorm ze koos, waar ze was; na een pauze warm en zonder aantal
+     dagen; na twee rondes vandaag: stoppen mag. De eerste keer zegt startText het al (geen extra zin). Eén keer per bezoek. */
+  let introLine = null;
+  function introVoice(){
+    if (introLine != null) return introLine;
+    const st = PL.stem, V = data.voice, sig = st.sig, g = st.genus(T), tIso = today(), ss = realSessions(data);
+    if (!ss.length) return (introLine = "");
+    const todayRounds = sig.roundsOn(data, tIso), since = sig.daysSince(data), h = new Date().getHours();
+    const reg = h >= 19 ? "rustig" : todayRounds ? "" : "kort";
+    const stap = T.stones[data.stage - 1].name, last = ss[ss.length - 1];
+    if (todayRounds >= 2) return (introLine = st.say("intro.vandaag", {rondes: st.aantal(todayRounds, "rondes"), reg}, V));
+    if (since >= 5){ const gs = T.stones.slice(0, data.stage).reverse().find(s => green(s.id)); return (introLine = st.say("intro.pauze", {stap: (gs || T.stones[data.stage - 1]).name, reg}, V)); }
+    const dueK = sig.dueToday(data);
+    if (dueK.length){ const d0 = dueK.map(k => data.items[k].d || "").filter(Boolean).sort()[0]; return (introLine = st.say("intro.terug", {items: st.lijst(dueK.slice(0, 3).map(k => st.label(T, k))), pl: dueK.length > 1, dag: d0 ? st.dag(d0) : "", genus: g, reg}, V)); }
+    const vorm = `"${T.forms[data.lastForm || "A"].name}"`;
+    introLine = ss.length % 2 ? st.say("intro.vorm", {vorm, dag: st.dag(last.d), reg}, V) : st.say("intro.laatst", {stap, dag: st.dag(last.d), reg}, V);
+    return introLine;
   }
   /* startscherm v0.11 (Hick, Occam): één regel uitleg → de vorm als keuze uit twee (onthouden) → één Start over de hele breedte,
      onderin (Fitts). Een open ronde gaat voor (Zeigarnik): "Ga verder". Wat al vanzelf gaat, staat er als groei, zonder totaal. */
@@ -1763,6 +1897,24 @@ PL.start = async function(T, opts){
        met regels). Bij het begin, zolang het model nog vol steunt, en na een tussenstap valt hij op; na drie keer op rij meteen
        goed wordt hij rustig (klein, grijs), maar hij blijft te openen. Bekijken stopt niets. */
     let okRun = 0, ruleItem = null, ruleSeen = false;
+    let prevNotFirst = null, stuckNote = "", stuckShown = false, voiceN = 0;   // v0.12: de stem in de ronde (hooguit drie zinnen na "Gelukt")
+    okVoice = () => {
+      if (!cur_ || !cur_.item || voiceN >= 3) return "";
+      const it = cur_.item, first = !cur_.step, lab = PL.stem.label(T, it.key), ms = performance.now() - cur_.t0;
+      const sl = {item: lab, genus: PL.stem.genus(T), reg: new Date().getHours() >= 19 ? "rustig" : ""};
+      let out = "";
+      if (first && it.requeue) out = PL.stem.say("ronde.terugok", sl, data.voice);
+      else if (first){
+        const bn = PL.stem.sig.breakNow(data, it.key);   // nog niet gelogd: dit is het moment zelf
+        const rec_ = data.items[it.key], lastRt = rec_ && rec_.rts && rec_.rts.length ? rec_.rts[rec_.rts.length - 1] : null;
+        cur_.doubt = PL.stem.sig.doubt(data.stones[it.stone], ms, PL._cor);
+        if (bn) out = PL.stem.say("ronde.doorbraak", Object.assign({eerder: PL.stem.dag(bn.eerder)}, sl), data.voice);
+        else if (cur_.doubt) out = PL.stem.say("ronde.twijfel", sl, data.voice);
+        else if (lastRt != null && ms < lastRt * 0.75 && lastRt - ms > 800) out = PL.stem.say("ronde.sneller", sl, data.voice);
+      }
+      if (out) voiceN++;
+      return out;
+    };
     rulesShow = (prom, fresh) => {
       const bar = $("pl-rulebar"); if (!bar) return;
       const R = ruleItem && T.rules ? T.rules(ruleItem, ctx) : null;
@@ -1784,7 +1936,7 @@ PL.start = async function(T, opts){
     const queue = restored && restored.length ? restored : composeRound();
     const offset = restored && restored.length ? resume.i : 0;
     const cur = custom && !custom.all ? (T.stones.find(x => x.id === custom.stoneId) || T.stones[0]) : T.stones[data.stage - 1];
-    const res = {items: [], first: 0, steps: 0, fluent: 0, stoneId: cur.id, stageAtStart: data.stage, reqN: 0, reqOk: 0, hints: 0, switches: 0, modes: {}, rts: [], reqItems: [], adj: roundAdj && roundAdj.kind};
+    const res = {t0: new Date().toISOString().slice(0, 19), items: [], first: 0, steps: 0, fluent: 0, stoneId: cur.id, stageAtStart: data.stage, reqN: 0, reqOk: 0, hints: 0, switches: 0, modes: {}, rts: [], reqItems: [], adj: roundAdj && roundAdj.kind};
     const total = queue.length;
     // v0.11 (Goal-Gradient, Parkinson): de lengte van de ronde als balk met "2 van 6" (geen score: alleen waar je bent in de ronde)
     const lang = total > 12;
@@ -1798,6 +1950,8 @@ PL.start = async function(T, opts){
       keepOpen();
       const item = queue.shift();
       const t0 = performance.now();
+      cur_ = {item, t0, step: false}; PL._cor = 0;
+      if (stuckNote && !stuckShown){ stuckShown = true; ctx.fb.note(stuckNote); stuckNote = ""; }
       tried = null; PL._item = item;   // alleen voor tests/ux.py (controle: noemt de tussenstap het antwoord?)
       ruleItem = item; ruleSeen = false; rulesShow(ctx.support(item.stone) === "vol" && okRun < 3, true);
       let r;
@@ -1806,7 +1960,11 @@ PL.start = async function(T, opts){
       const rt = Math.max(0, Math.round(performance.now() - t0 - (r.typingMs || 0)));
       const fluent = updateItem(item.key, r.first, r.step, r.first ? rt : null);
       updateStone(item.stone, r.first, r.first ? rt : null);
-      log({k: item.key, st: item.stone, f: form, ok1: r.first ? 1 : 0, step: r.step ? 1 : 0, rt, warm: item.warm ? 1 : 0, sup: r.support || "", ex: r.step ? (r.expl || "standaard") : undefined, sw: r.switches || undefined, rev: r.revealed ? 1 : undefined});
+      log({k: item.key, st: item.stone, f: form, ok1: r.first ? 1 : 0, step: r.step ? 1 : 0, rt, warm: item.warm ? 1 : 0, sup: r.support || "", ex: r.step ? (r.expl || "standaard") : undefined, sw: r.switches || undefined, rev: r.revealed ? 1 : undefined, cor: PL._cor || undefined});
+      if (cur_.doubt && r.first) res.doubt = res.doubt || item;
+      // v0.12 vastlopen (S6, S7, S8): na twee vragen op rij niet in één keer, één keer per ronde een rustige zin bij de volgende vraag
+      if (!r.first && !item.requeue && prevNotFirst && !stuckShown && queue.length){ const ks = [prevNotFirst, item]; stuckNote = PL.stem.say("ronde.vast", {items: PL.stem.lijst([...new Set(ks.map(x => PL.stem.label(T, x.key)))]), pl: ks[0].key !== ks[1].key, genus: PL.stem.genus(T)}, data.voice); }
+      prevNotFirst = !r.first && !item.requeue ? item : null;
       res.items.push({label: item.label, first: r.first, step: r.step, item, rt, requeue: !!item.requeue, expl: r.expl || null});
       okRun = r.first ? okRun + 1 : 0;
       if (r.first && rt != null) res.rts.push(rt);
@@ -1836,6 +1994,7 @@ PL.start = async function(T, opts){
       ctx.fb.clear();
     }
     inRound = false; topBtn(false); delete data.open;
+    res.knownBefore = knownBefore;
     res.newKnown = [...new Set(res.items.filter(x => x.first && known(x.item.key) && !knownBefore.has(x.item.key)).map(x => x.label))];
     res.dueOk = res.items.filter(x => x.item.due && x.first).map(x => x.label);
     if (T.roundEnd) try { T.roundEnd(ctx, res); } catch(e){}
@@ -1861,11 +2020,38 @@ PL.start = async function(T, opts){
     const base = PL.compose(facts, data.lines);
     data.lines = data.lines.concat(base.used).slice(-12);
     if (facts.has.wise && base.used.some(u => u.startsWith("wise"))) wiseShown = true;
-    lastRound = {res, moved, again, next: nextLine(res, moved, cur), base: base.text || `Je deed ${res.items.length} ${T.noun}, tot en met ${res.items[res.items.length - 1].label}.`};
     await save();
+    const V = endVoice(res);
+    lastRound = {res, moved, again, next: nextLine(res, moved, cur), base: V.high || base.text || `Je deed ${res.items.length} ${T.noun}, tot en met ${res.items[res.items.length - 1].label}.`, voice: V, mustHave: V.mustHave};
+    save();
     showEnd(true);
   }
 
+  /* v0.12 einde (S13, S16, S14, S8): één echt hoogtepunt, wat er groeide, wat terugkomt, en na een lange sessie: stoppen mag */
+  function endVoice(res){
+    const st = PL.stem, V = data.voice, g = st.genus(T), lab = k => st.label(T, k), tIso = today();
+    const reg = new Date().getHours() >= 19 ? "rustig" : "";
+    const out = {high: "", groei: "", morgen: "", lang: "", tired: false, mustHave: ""};
+    const nkKeys = [...new Set(res.items.filter(x => x.first && known(x.item.key) && !res.knownBefore.has(x.item.key)).map(x => x.item.key))];
+    for (const x of res.items){
+      if (!x.first) continue;
+      const bn = st.sig.breakNow(data, x.item.key, res.t0);   // de stand vóór deze ronde
+      if (bn){ out.high = st.say("einde.doorbraak", {item: lab(x.item.key), eerder: st.dag(bn.eerder), genus: g, reg}, V); out.mustHave = lab(x.item.key); break; }
+    }
+    const vanzelf = () => st.say("einde.vanzelf", {items: st.lijst(nkKeys.slice(0, 3).map(lab)), pl: nkKeys.length > 1, genus: g, reg}, V);
+    if (!out.high && nkKeys.length){ out.high = vanzelf(); out.mustHave = lab(nkKeys[0]); }
+    else if (nkKeys.length) out.groei = vanzelf();
+    if (!out.high){ const x = res.items.find(x => x.requeue && x.first); if (x){ out.high = st.say("einde.terugok", {item: lab(x.item.key), genus: g, reg}, V); out.mustHave = lab(x.item.key); } }
+    if (!out.high && res.doubt){ out.high = st.say("einde.twijfel", {item: lab(res.doubt.key), genus: g, reg}, V); out.mustHave = lab(res.doubt.key); }
+    if (!out.high){ const fs = res.items.filter(x => x.first); const x = fs[fs.length - 1]; if (x){ out.high = st.say("einde.zelf", {item: lab(x.item.key), genus: g, reg}, V); out.mustHave = lab(x.item.key); } }
+    const today_ = realSessions(data).filter(s => s.d === tIso).reduce((a, s) => a + (s.rounds || 0), 0);
+    if (!out.groei) out.groei = st.say("einde.tuin", {ronde: st.rang(Math.max(1, today_)), training: T.title, reg}, V);
+    const back = [...new Set(res.items.filter(x => !x.first && !res.items.some(y => y.requeue && y.first && y.item.key === x.item.key)).map(x => x.item.key))];
+    if (back.length) out.morgen = st.say("einde.morgen", {items: st.lijst(back.slice(0, 3).map(lab)), pl: back.length > 1, dagT: st.dagT(dayNum(tIso) + 1), genus: g, reg}, V);
+    const tired = st.sig.tired(S, res, P.sessionMin);
+    if (tired.lang){ out.tired = true; out.lang = st.say("einde.lang", {minuten: st.aantal(tired.min, "minuten"), reg}, V); }
+    return out;
+  }
   /* wat de volgende ronde wordt en waarom: dezelfde regels als composeRound, zonder iets te veranderen.
      "Nog een keer" is de knop; deze regel laat zien dat de volgende ronde uit haar resultaten volgt. */
   function nextLine(res, moved, cur){
@@ -1924,17 +2110,18 @@ PL.start = async function(T, opts){
     const R = lastRound.reacted, W = lastRound.why;
     route("klaar", true); app.classList.remove("pl-inround");
     // v0.11 (Peak-End): een kort feestje. Geen score: wat ze deed, wat erbij groeide, en één volgende stap.
-    const grewNow = res.newKnown && res.newKnown.length ? `Nieuw vanzelf: ${lst(res.newKnown.slice(0, 4))}${res.newKnown.length > 4 ? " en meer" : ""}. Dat groeit nu in je tuin.` : "Je tuin groeit mee met deze ronde.";
+    const V = lastRound.voice || {};   // v0.12: de stem (src/stem.js)
     screen.innerHTML = `
       <div class="pl-intro pl-end">
       <div class="pl-card pl-endcard">
         <div class="pl-endtop"><span class="pl-endflower" aria-hidden="true">${PL.flower(5, {stem: false})}</span><h2 class="pl-h2">Ronde klaar</h2></div>
         <div class="pl-cheer" id="pl-cheer" aria-live="polite">${esc(lastRound.cheer || lastRound.base)}</div>
-        <p class="pl-grow">${esc(grewNow)}</p>
+        ${V.groei ? `<p class="pl-grow">${esc(V.groei)}</p>` : ""}
         <div class="pl-tuinwrap pl-tuin-onder" id="pl-endtuin" aria-hidden="true"></div>
         ${T.endExtra ? T.endExtra(ctx, res) : ""}
         <p class="pl-note pl-nextline"><b>Volgende ronde.</b> ${esc(lastRound.next)}</p>
-        ${tooLong ? `<p class="pl-note">Je traint al een kwartier. Stoppen is prima, nog een keer ook.</p>` : ""}
+        ${V.morgen ? `<p class="pl-note pl-stemline">${esc(V.morgen)}</p>` : ""}
+        ${V.lang ? `<p class="pl-note pl-stemline">${esc(V.lang)}</p>` : ""}
         <div class="pl-react" id="pl-react">
           <span class="pl-note">Hoe ging het?</span>
           <div class="pl-row" role="group" aria-label="Hoe ging het?">
@@ -1945,8 +2132,9 @@ PL.start = async function(T, opts){
         ${custom && !custom.all ? `<button class="pl-help" id="pl-make3" type="button">Iets anders kiezen</button>` : ""}
       </div>
       <div class="pl-actions">
-        <button class="pl-btn big pl-full" id="pl-again" type="button">Nog een keer</button>
-        <button class="pl-btn quiet pl-full" id="pl-stop" type="button">Klaar voor vandaag</button>
+        ${V.tired ? `<button class="pl-btn big pl-full" id="pl-stop" type="button">Klaar voor vandaag</button>
+        <button class="pl-btn quiet pl-full" id="pl-again" type="button">Nog een keer</button>` : `<button class="pl-btn big pl-full" id="pl-again" type="button">Nog een keer</button>
+        <button class="pl-btn quiet pl-full" id="pl-stop" type="button">Klaar voor vandaag</button>`}
       </div></div>`;
     allStates().then(st => { const b = $("pl-endtuin"); if (b && PL.tuin) PL.tuin(b, {states: st, strook: true}); });
     const whyBox = $("pl-why");
@@ -1993,7 +2181,7 @@ Regels: houd het concreet over wat ze deed; verander geen feiten. Noem geen cijf
 Training: ${T.title}. Vorm: ${T.forms[form].name}.
 Wat er gebeurde: ${facts}.
 De bemoediging uit de code: ${lastRound.base}
-Antwoord alleen met de zinnen.`).then(t => { if (t){ lastRound.cheer = t; const el = $("pl-cheer"); if (el) el.textContent = t; } });
+Antwoord alleen met de zinnen.`).then(t => { if (t && (!lastRound.mustHave || t.includes(lastRound.mustHave)) && !PL.stem.VERBODEN.test(t)){ /* v0.12: het feit moet blijven, verboden woorden niet */ lastRound.cheer = t; const el = $("pl-cheer"); if (el) el.textContent = t; } });
     }
   }
   /* alle trainingen laden (de tuin is van alles samen), dan inzoomen op het tuintje van deze training */
@@ -2003,15 +2191,20 @@ Antwoord alleen met de zinnen.`).then(t => { if (t){ lastRound.cheer = t; const 
     app.classList.remove("pl-inround");
     const can = T.canDo(ctx);
     gardenBack = back || null;
+    // v0.12 (S9, S12, S14, S16): de resultatenkaart van deze training, in zinnen met feiten; daaronder wat ze al kan
+    const bl = resultBlocks(T, data, data.voice), pl = perkLine(T, data, data.voice);
     screen.innerHTML = `
       <div class="pl-intro">
-      <div class="pl-card" style="display:grid;gap:12px">
+      <div class="pl-card pl-tuinpagina" style="display:grid;gap:12px">
         <h2 class="pl-h2">Mijn tuin</h2>
         <div class="pl-tuinwrap" id="pl-tuin"></div>
+        <p class="pl-rups">${esc(pl)}</p>
+        ${bl.length ? `<div class="pl-result" aria-live="polite">${resultHTML(bl)}</div>` : ""}
         <div><h3 class="pl-h2" style="font-size:1.2rem">${esc(T.canTitle)}</h3>${can.length ? `<ul class="pl-cando">${can.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : `<p class="pl-note">Dit lijstje groeit vanzelf als je traint.</p>`}</div>
       </div>
-      <div class="pl-actions"><button class="pl-btn quiet pl-full" id="pl-back" type="button">Terug</button></div></div>`;
+      <div class="pl-actions"><button class="pl-btn big pl-full" id="pl-back" type="button">Verder trainen</button></div></div>`;
     $("pl-back").addEventListener("click", () => (back ? back(false) : showStart()));
+    save();
     if (PL.tuin) PL.tuin($("pl-tuin"), {states: await allStates(), focus: T.id});
   }
   let gardenBack = null;
@@ -2244,6 +2437,627 @@ window.addEventListener("hashchange", () => {
 window.addEventListener("DOMContentLoaded", () => { if (window.__plFace) PL.face = window.__plFace; PL.boot(); });
 })();
 
+/* De stem van het Leeratelier (v0.12): alle zinnen die iets zeggen over Natalia's werk, op één plek.
+   Elke familie: staat (welk signaal), toon, regels uit docs/onderbouwing.md (S1–S18, G1–G3), en minstens 8 varianten
+   (families die elke ronde kunnen vallen: 12). Slots tussen accolades; {v:enkelvoud|meervoud} kiest het werkwoord;
+   {hij}/{hem} volgen het soort item (de som: hij, het woord/land: het). Elke variant bevat minstens één slot: een feit uit de log (S18).
+   Id = familie#nummer. Lengte en id worden bij het laden berekend (PL.STEM_COPY). */
+(function(){
+"use strict";
+const F = {
+/* ---------------- Mijn tuin en Home ---------------- */
+"rups.week": {staat: "inzet", toon: "licht", r: "S9 S10 S18", v: [
+  "Deze week trainde je het vaakst {training}: {rondes}.",
+  "{Training} kreeg deze week de meeste aandacht: {rondes}.",
+  "Bij {training} was je deze week het vaakst: {rondes}.",
+  "Deze week ging de meeste tijd naar {training}: {rondes}.",
+  "{rondes} {training} deze week. Daar is het meest gewerkt.",
+  "Het drukst was het deze week bij {training}, met {rondes}.",
+  "Deze week was {training} je vaste plek: {rondes}.",
+  "{Training} staat deze week bovenaan: {rondes} afgemaakt."]},
+"rups.groei": {staat: "doorbraak", toon: "warm", r: "S13 S18", v: [
+  "Nieuw in je tuin: {item} gaat sinds {dag} vanzelf.",
+  "Sinds {dag} gaat {item} vanzelf. Dat zie je bij {training}.",
+  "{Item} kwam {dag} in één keer, en nog een keer. Nu groeit {hij} mee.",
+  "Bij {training} groeide er {dag} iets bij: {item}.",
+  "{Dag} ging {item} weer vanzelf. Dat perk is gegroeid.",
+  "Het nieuwste in de tuin: {item}, bij {training}.",
+  "{Item} gaat nu vanzelf; {dag} lukte {hij} weer in één keer.",
+  "Kijk bij {training}: daar staat {item} sinds {dag}."]},
+"rups.doorbraak": {staat: "doorbraak", toon: "enthousiast", r: "S13 S18", v: [
+  "{Item} ging {dag} in één keer. {Eerder} nog met een tussenstap!",
+  "Deze week ging {item} om, bij {training}: {eerder} hulp, {dag} zelf.",
+  "{Dag} lukte {item} zonder hulp. {Eerder} lukte dat nog niet.",
+  "Bij {training} is {item} om: {dag} in één keer.",
+  "{Item}, {dag}: in één keer, na {eerder} met een tussenstap.",
+  "Kijk bij {training}: {item} ging {dag} zelf.",
+  "{Eerder} een tussenstap, {dag} in één keer: {item}.",
+  "{Item} zat er {dag} in. {Eerder} was {hij} nog lastig."]},
+"perk.leeg": {staat: "leeg", toon: "uitnodigend", r: "S8 S12 S18", v: [
+  "Hier is nog niets geplant. Eén ronde {training} en er komt iets op.",
+  "Dit perk is voor {training}. Na je eerste ronde komt er een kiem.",
+  "{Training} heeft nog een leeg perkje. Eén ronde is genoeg om te zaaien.",
+  "Nog kale grond bij {training}. Wil je er een keer iets in zetten?",
+  "Het perk van {training} wacht nog. Eén ronde en je ziet iets.",
+  "Bij {training} is nog niets gezaaid. Dat kan vandaag, als je wilt.",
+  "{Training}: nog leeg. Na één afgemaakte ronde komt er iets op.",
+  "Hier komt {training} te staan. Eén ronde en de eerste kiem is er."]},
+"perk.groei": {staat: "groei", toon: "nuchter", r: "S9 S13 S18", v: [
+  "{aantal} {v:gaat|gaan} al vanzelf. Het laatst kwam {item} erbij.",
+  "{aantal} vanzelf; de nieuwste is {item}.",
+  "Al {aantal} zonder nadenken. {Item} kwam er {dag} bij.",
+  "{Item} kwam er {dag} bij. Nu {v:gaat|gaan} er {aantal} vanzelf.",
+  "Vanzelf: {aantal}. Het laatst {item}, {dag}.",
+  "{aantal} in één keer, keer op keer. {Item} is de jongste.",
+  "Sinds {dag} zit {item} bij de {aantal} die vanzelf gaan.",
+  "{aantal} groeien hier. {Item} kwam {dag} op."]},
+"perk.bezig": {staat: "inzet", toon: "nuchter", r: "S9 S14 S18", v: [
+  "Je trainde hier {dag}: {rondes}. Wat vaak in één keer lukt, gaat straks vanzelf.",
+  "{Dag} {rondes} gedaan. Na een paar keer in één keer komt er iets op.",
+  "Hier werkte je {dag} aan {stap}. Dat groeit nog.",
+  "{Rondes} tot nu toe, het laatst {dag}. De eerste kiem zit eraan te komen.",
+  "{Dag} oefende je {stap}. Als het een paar keer in één keer gaat, zie je het hier.",
+  "Je bent bezig met {stap}, het laatst {dag}.",
+  "{Rondes} gezaaid, het laatst {dag}. Groeien gaat langzaam en zeker.",
+  "Het laatst hier: {dag}, met {stap}."]},
+"home.due": {staat: "herhaling", toon: "licht", r: "S14 S18", v: [
+  "{Items} {v:staat|staan} klaar om te herhalen.",
+  "Vandaag {v:komt|komen} {items} terug.",
+  "{Items} {v:is|zijn} weer aan de beurt.",
+  "Herhalen staat klaar: {items}.",
+  "{Items} {v:wacht|wachten} op je. Even kijken of {v:hij|ze} nog vanzelf {v:gaat|gaan}.",
+  "Er {v:ligt|liggen} {items} klaar van een vorige keer.",
+  "Terug van eerder: {items}.",
+  "{Items}: tijd om te kijken of {v:hij|ze} er nog {v:zit|zitten}."]},
+"home.pauze": {staat: "ritme", toon: "warm", r: "S8 S10 S18", v: [
+  "{Item} heeft op je gewacht. Een korte ronde?",
+  "{Item} staat er nog. Zullen we kijken of {hij} nog vanzelf gaat?",
+  "Fijn dat je er bent. {Item} ligt klaar.",
+  "{Item} heeft even gerust. Kijken of {hij} er nog zit?",
+  "We beginnen rustig, met {item}.",
+  "{Item} wacht op je. Een korte ronde is genoeg.",
+  "Daar ben je. {Item} staat bovenaan.",
+  "Even kijken wat er nog zit. {Item} is de eerste."]},
+"home.laatst": {staat: "ritme", toon: "licht", r: "S12 S18", v: [
+  "Je trainde hier {dag}. We gaan door met {stap}.",
+  "{Dag} werkte je aan {stap}. Daar gaan we verder.",
+  "Verder met {stap}, waar je {dag} was.",
+  "{Dag} was je bij {stap}. Vandaag weer een stukje.",
+  "Het laatst: {stap}, {dag}. Daar pak je het op.",
+  "{Stap} ligt klaar; daar was je {dag}.",
+  "Je was {dag} bezig met {stap}. Die gaat vandaag door.",
+  "{Dag} {stap}. Vandaag een volgende ronde."]},
+"home.eerste": {staat: "eerste", toon: "uitnodigend", r: "S2 S12 S18", v: [
+  "{Training} begint bij {stap}. Een korte ronde om te kijken?",
+  "Eerste keer {training}: we beginnen bij {stap}.",
+  "{Stap} is het begin van {training}. Daar zetten we de eerste stap.",
+  "{Training} start met {stap}. Zes vragen, in je eigen tempo.",
+  "We beginnen bij {stap}. Daar bouwt {training} op.",
+  "Een eerste ronde {training}: {stap}.",
+  "{Stap}, daar begint het. Kijken hoe het gaat?",
+  "Bij {training} komt eerst {stap}. Proberen?"]},
+"home.teaser": {staat: "groei", toon: "warm", r: "S13 S18", v: [
+  "{Dag} kwam {item} erbij in je tuin.",
+  "Het nieuwste: {item}, sinds {dag}.",
+  "{Item} gaat sinds {dag} vanzelf.",
+  "Er groeide {dag} iets bij: {item}.",
+  "{Dag}: {item} in één keer, weer. Dat zie je in je tuin.",
+  "In je tuin staat sinds {dag} {item}.",
+  "{Item} groeit mee sinds {dag}.",
+  "Je tuin kreeg {dag} {item} erbij."]},
+"home.teaser.bezig": {staat: "inzet", toon: "nuchter", r: "S9 S18", v: [
+  "{Dag} trainde je {training}. Dat zie je terug in je tuin.",
+  "Je laatste ronde: {training}, {dag}.",
+  "{Training} kreeg {dag} een ronde. Het perk groeit mee.",
+  "{Dag} was je bij {training}.",
+  "Het laatst gewerkt: {training}, {dag}.",
+  "{Dag} een ronde {training}. Daar komt iets op.",
+  "Je tuin weet nog: {dag}, {training}.",
+  "{Training}, {dag}: ook dat telt in je tuin."]},
+
+/* ---------------- Resultatenkaart ---------------- */
+"kaart.laatste": {staat: "laatste", toon: "nuchter", r: "S16 S18", v: [
+  "{Dag} deed je {rondes}. Het laatst kwam {item}.",
+  "{Dag}: {rondes}, tot en met {item}.",
+  "Je laatste keer was {dag}: {rondes}.",
+  "{Rondes} {dag}. De laatste vraag was {item}.",
+  "{Dag} trainde je hier, {rondes}. Je eindigde met {item}.",
+  "Laatst: {dag}, {rondes}, met {item} als slot.",
+  "{Dag} zat je hier {rondes}. {Item} was de laatste.",
+  "{Rondes} afgemaakt, {dag}. Je stopte na {item}."]},
+"kaart.doorbraak": {staat: "doorbraak", toon: "enthousiast", r: "S13 S9 S18", v: [
+  "{Item}: {eerder} nog via een tussenstap, {dag} in één keer.",
+  "{Item} lukte {dag} in één keer. {Eerder} nog niet.",
+  "{Eerder} had {item} een tussenstap nodig. {Dag} ging {hij} zo!",
+  "Kijk: {item}. {Eerder} met hulp, {dag} zonder.",
+  "{Dag} ging {item} in één keer, na {eerder} met een tussenstap.",
+  "{Item} is om: {eerder} nog lastig, {dag} in één keer.",
+  "Wat {eerder} een tussenstap was, ging {dag} vanzelf: {item}.",
+  "{Item} pakte je {dag} in één keer. {Eerder} lukte dat nog niet."]},
+"kaart.terug": {staat: "herhaling", toon: "nuchter", r: "S14 S18", v: [
+  "{DagT} {v:komt|komen} {items} terug.",
+  "{Items}: {dagT} terug.",
+  "{DagT} kijken we of {items} er nog {v:zit|zitten}.",
+  "{DagT} {v:ligt|liggen} {items} weer klaar.",
+  "{Items} {v:komt|komen} {dagT} nog een keer langs.",
+  "{DagT}: {items}.",
+  "Even wachten, dan {v:komt|komen} {items} terug: {dagT}.",
+  "{Items} {v:rust|rusten} tot {dagT}."]},
+"kaart.rust": {staat: "herhaling", toon: "rustig", r: "S14 S18", v: [
+  "{Aantal} laat ik rusten tot {dagT}. Rust helpt bij onthouden.",
+  "{aantal} mogen even rusten, tot {dagT}.",
+  "Tot {dagT} {v:rust|rusten} er {aantal}. Dan kijken we of {v:hij|ze} er nog {v:zit|zitten}.",
+  "{aantal} {v:gaat|gaan} al zo goed dat {v:hij|ze} pas {dagT} terug{v:komt|komen}.",
+  "{aantal} met rust gelaten tot {dagT}.",
+  "Rust voor {aantal}, tot {dagT}.",
+  "{aantal} {v:komt|komen} pas {dagT} terug. Even wachten maakt het sterker.",
+  "{aantal} {v:staat|staan} op pauze tot {dagT}."]},
+"kaart.afmaken": {staat: "inzet", toon: "nuchter", r: "S5 S9 S18", v: [
+  "Deze week maakte je {rondes} af.",
+  "{Rondes} afgemaakt deze week, tot de laatste vraag.",
+  "Deze week bleef je erbij: {rondes} helemaal af.",
+  "{Rondes} deze week, elke keer tot het eind.",
+  "Je maakte deze week {rondes} af. Volhouden zie je hier.",
+  "Deze week: {rondes}, allemaal uitgespeeld.",
+  "{Rondes} tot het eind gedaan, deze week.",
+  "Je deed deze week {rondes}, van begin tot eind."]},
+"kaart.hulp": {staat: "inzet", toon: "warm", r: "S5 S9 S12 S18", v: [
+  "{Item} deed je {eerder} nog met het model erbij. {Dag} zonder.",
+  "{Eerder} pakte je bij {item} het model erbij; {dag} ging {hij} zonder.",
+  "Bij {item} had je {dag} het model niet meer nodig. {Eerder} nog wel.",
+  "{Item}: {eerder} met hulp, {dag} zelf.",
+  "{Dag} liet je het model bij {item} weg. {Eerder} hielp het nog.",
+  "Het model hielp {eerder} bij {item}. {Dag} deed je {hem} zelf.",
+  "{Eerder} met het model, {dag} zonder: {item}.",
+  "{Item} kon {dag} zonder hulp; {eerder} had je die nog nodig."]},
+"kaart.tempo": {staat: "inzet", toon: "nuchter", r: "S9 S3 S18", v: [
+  "{Item} kwam {dag} vlotter dan {eerder}.",
+  "Je aarzelde {dag} korter bij {item} dan {eerder}.",
+  "{Item} ging {dag} sneller dan {eerder}, zonder gokken.",
+  "{Eerder} dacht je bij {item} langer na. {Dag} ging {hij} vlot.",
+  "Bij {item} zat je {dag} minder lang te denken dan {eerder}.",
+  "{Item}: {dag} vlotter dan {eerder}.",
+  "Sneller dan {eerder}: {item}, {dag}.",
+  "{Dag} kwam {item} er vlot uit. {Eerder} duurde het langer."]},
+"kaart.vorm": {staat: "autonomie", toon: "licht", r: "S8 S18", v: [
+  "Je koos zelf {vorm}, {rondes}.",
+  "{Vorm} is jouw keuze: {rondes} tot nu toe.",
+  "Je speelde {rondes} {vorm}. Zelf gekozen.",
+  "{Rondes} met {vorm}, omdat jij dat koos.",
+  "Jij kiest {vorm}; {rondes} al.",
+  "{Vorm}: {rondes}, jouw keuze.",
+  "Zelf gekozen: {vorm}, {rondes}.",
+  "Je zette {vorm} {rondes} aan."]},
+"kaart.uitleg": {staat: "uitleg", toon: "nuchter", r: "S12 S9 S18", v: [
+  "Na de uitleg met {mode} ging {item} de keer erna in één keer.",
+  "{Mode} hielp: {item} lukte daarna in één keer.",
+  "{Item} kreeg uitleg met {mode}. De volgende keer ging {hij} zelf.",
+  "Met {mode} erbij snapte je {item}; daarna in één keer.",
+  "De uitleg met {mode} landde bij {item}.",
+  "{Item}: eerst {mode}, toen in één keer.",
+  "Bij {item} werkte {mode}. Daarna had je het niet meer nodig.",
+  "{Mode} bij {item}, en de keer erna zelf."]},
+"kaart.uitleg.nog": {staat: "uitleg", toon: "rustig", r: "S6 S7 S12 S18", v: [
+  "Bij {item} hielp {mode} nog niet genoeg. Ik probeer een andere uitleg.",
+  "{Item} ging na {mode} nog via een tussenstap. Volgende keer anders uitgelegd.",
+  "{Mode} was bij {item} nog niet de goede. Er is een andere manier.",
+  "{Item} vraagt een andere uitleg dan {mode}. Die komt.",
+  "Na {mode} was {item} nog niet raak. Je kunt {hem} leren; ik leg het anders uit.",
+  "{Item}: {mode} paste nog niet. Ik kies straks iets anders.",
+  "Bij {item} zoeken we nog de goede uitleg; {mode} was het nog niet.",
+  "{Item} komt terug, dan met een andere uitleg dan {mode}."]},
+
+/* ---------------- Startscherm van een training ---------------- */
+"intro.terug": {staat: "herhaling", toon: "licht", r: "S14 S18", v: [
+  "{Items} {v:komt|komen} vandaag terug van een vorige keer.",
+  "Eerst even {items}: kijken of {v:hij|ze} er nog {v:zit|zitten}.",
+  "Vandaag weer langs: {items}.",
+  "{Items} {v:staat|staan} klaar om te herhalen.",
+  "We beginnen met {items}, van {dag}.",
+  "{Items} van {dag} {v:is|zijn} weer aan de beurt.",
+  "Terug van {dag}: {items}.",
+  "{Items} {v:wacht|wachten} al even. Die eerst."]},
+"intro.vorm": {staat: "autonomie", toon: "licht", r: "S8 S18", v: [
+  "{Dag} koos je {vorm}. Die staat klaar; wisselen mag.",
+  "Vorige keer {vorm}, {dag}. Weer zo, of anders?",
+  "{Vorm} staat aan, net als {dag}.",
+  "Je speelde {dag} {vorm}. Kies gerust iets anders.",
+  "{Dag} was het {vorm}. Jij kiest.",
+  "{Vorm} weer? Dat koos je {dag}.",
+  "Klaar met {vorm}, zoals {dag}.",
+  "{Dag}: {vorm}. Vandaag mag je kiezen."]},
+"intro.uitleg": {staat: "uitleg", toon: "rustig", r: "S12 S6 S18", v: [
+  "Bij {stap} probeer ik vandaag {mode} als uitleg.",
+  "Vandaag leg ik {stap} uit met {mode}.",
+  "{Mode} is de uitleg voor {stap} vandaag. Eens kijken of die helpt.",
+  "Voor {stap} kies ik nu {mode}.",
+  "Een andere uitleg bij {stap}: {mode}.",
+  "{Stap} met {mode} erbij, deze keer.",
+  "Ik zet {mode} klaar voor {stap}.",
+  "Bij {stap} helpt misschien {mode}. Die staat klaar."]},
+"intro.pauze": {staat: "ritme", toon: "warm", r: "S8 S10 S18", v: [
+  "Fijn dat je er bent. We beginnen met {stap}; dat lukte vorige keer.",
+  "We pakken het rustig op, bij {stap}.",
+  "Eerst {stap}, dat kende je al. Dan verder.",
+  "{Stap} eerst. Dat zat er vorige keer goed in.",
+  "We beginnen bij {stap}, om er weer in te komen.",
+  "Rustig opstarten met {stap}.",
+  "{Stap} als begin. Daarna zien we verder.",
+  "Even inkomen met {stap}."]},
+"intro.vandaag": {staat: "ritme", toon: "rustig", r: "S8 S16 S18", v: [
+  "Je deed vandaag al {rondes}. Nog een kan, stoppen ook.",
+  "Vandaag al {rondes}. Jij kiest of er een bij komt.",
+  "{Rondes} vandaag. Nog eentje, of is het mooi zo?",
+  "Na {rondes} vandaag mag je kiezen: door of klaar.",
+  "{Rondes} gedaan vandaag. Een extra is welkom, niet nodig.",
+  "Vandaag al {rondes}. Doe wat goed voelt.",
+  "Je zat hier vandaag al {rondes}. Nog een korte?",
+  "{Rondes} vandaag. Stoppen is ook een goede keuze."]},
+"intro.laatst": {staat: "ritme", toon: "licht", r: "S12 S18", v: [
+  "{Dag} oefende je {stap}. Daar gaan we verder.",
+  "Verder met {stap}, waar je {dag} was.",
+  "{Dag} was het {stap}. Vandaag weer.",
+  "{Stap}, net als {dag}. Met nieuwe vragen.",
+  "We gaan door met {stap}, van {dag}.",
+  "{Dag} begon je aan {stap}. Nu een volgend stuk.",
+  "{Stap} loopt nog, sinds {dag}.",
+  "Hier was je {dag}: {stap}."]},
+
+/* ---------------- In een ronde (na "Gelukt") ---------------- */
+"ronde.doorbraak": {staat: "doorbraak", toon: "enthousiast", r: "S13 S17 S18", v: [
+  "{Eerder} via een tussenstap, nu in één keer!",
+  "Deze ging {eerder} nog met een tussenstap. Nu zelf.",
+  "Nu in één keer. {Eerder} lukte dat nog niet.",
+  "{Eerder} had je hulp nodig bij deze. Nu niet!",
+  "Kijk, in één keer. {Eerder} was het nog een tussenstap.",
+  "Deze is om: {eerder} lastig, nu in één keer.",
+  "Zelf, in één keer. {Eerder} ging het via de tussenstap.",
+  "Na {eerder} nu zonder hulp!",
+  "{Eerder} nog niet, nu wel: in één keer.",
+  "Dat is nieuw: in één keer. {Eerder} lukte dat niet.",
+  "In één keer, en {eerder} kostte deze nog een tussenstap!",
+  "{Eerder} een tussenstap, nu meteen raak."]},
+"ronde.terugok": {staat: "doorbraak", toon: "warm", r: "S7 S13 S17", v: [
+  "{Item} kwam terug, en nu in één keer.",
+  "Daar is {item} weer. Nu zonder tussenstap.",
+  "{Item} de tweede keer: in één keer.",
+  "Net nog met een tussenstap, nu zelf: {item}.",
+  "{Item} zat er nu in. De tussenstap hielp.",
+  "Terug en raak: {item}.",
+  "{Item} ging nu meteen. Dat deed de tussenstap van net.",
+  "Even later, en {item} ging zelf.",
+  "{Item} is terug en nu in één keer.",
+  "De tweede keer {item}: zonder hulp.",
+  "{Item} kwam langs en je wist {hem}.",
+  "Na de tussenstap van net: {item} in één keer."]},
+"ronde.twijfel": {staat: "twijfel", toon: "rustig", r: "S5 S9 S17", v: [
+  "Bij {item} nam je even de tijd, en je kwam er zelf uit.",
+  "{Item} kostte even denken. Je bleef erbij.",
+  "Je dacht bij {item} rustig na. Zelf gevonden.",
+  "{Item}: even zoeken, en toch zelf.",
+  "Je nam de tijd voor {item}. Dat mag.",
+  "{Item} vroeg wat denkwerk. Je hield vol.",
+  "Rustig gedaan bij {item}, en raak.",
+  "Bij {item} twijfelde je even. Je vond {hem} zelf.",
+  "{Item} kwam er na even denken uit.",
+  "Even nadenken bij {item}, en dan zelf.",
+  "Bij {item} zat je even. Je gaf niet op.",
+  "{Item}: niet meteen, wel zelf."]},
+"ronde.sneller": {staat: "tempo", toon: "licht", r: "S9 S3 S17", v: [
+  "{Item} in één keer, en vlotter dan vorige keer.",
+  "Vlotter dan de vorige keer: {item}.",
+  "{Item} kwam nu sneller.",
+  "Sneller dan eerder, {item}.",
+  "{Item} zit erin: vlotter dan vorige keer.",
+  "Je hoefde bij {item} korter te denken dan vorige keer.",
+  "{Item} ging nu vlot.",
+  "Minder aarzelen bij {item} dan vorige keer.",
+  "{Item}: vlotter dan eerst.",
+  "{Item} kwam er nu snel uit.",
+  "Vorige keer duurde {item} langer.",
+  "Bij {item} ging het nu sneller."]},
+"ronde.vast": {staat: "vastlopen", toon: "rustig", r: "S6 S7 S8 S15", v: [
+  "{Items} {v:is|zijn} pittig, en je kunt {v:hem|ze} leren. {v:Hij komt|Ze komen} straks terug.",
+  "{Items} {v:vroeg|vroegen} een tussenstap. Dat is trainen; straks {v:komt hij|komen ze} terug.",
+  "Bij {items} hielp de tussenstap. Je kunt {v:hem|ze} leren; {v:hij komt|ze komen} zo terug.",
+  "{Items}: nog niet in één keer. Ik weet dat je {v:hem|ze} kunt leren.",
+  "{Items} {v:komt|komen} terug, met dezelfde hulp. Stoppen mag ook.",
+  "Twee keer een tussenstap, bij {items}. Rustig aan; {v:hij komt|ze komen} terug.",
+  "{Items} {v:is|zijn} nog lastig. Ik geef je {v:hem|ze} omdat je {v:hem|ze} kunt leren.",
+  "De tussenstappen bij {items} tellen ook. {v:Hij komt|Ze komen} straks nog een keer.",
+  "{Items} {v:vraagt|vragen} nog hulp. Je bent er nog niet, en je komt er.",
+  "Bij {items} ging het via een omweg. Dat is trainen; {v:hij komt|ze komen} terug.",
+  "{Items} {v:lukt|lukken} nog niet in één keer. Wil je pauze, dan kan dat.",
+  "{Items}: lastig nu. Morgen {v:staat hij|staan ze} weer klaar, met hulp."]},
+
+/* ---------------- Einde van een ronde ---------------- */
+"einde.doorbraak": {staat: "doorbraak", toon: "enthousiast", r: "S13 S16 S18", v: [
+  "{Item} lukte in één keer. {Eerder} ging {hij} nog via een tussenstap!",
+  "Het moment van deze ronde: {item}, zonder hulp. {Eerder} nog met.",
+  "{Item} is om. {Eerder} een tussenstap, vandaag in één keer.",
+  "Dit was {item}: {eerder} lastig, nu zelf!",
+  "{Item} pakte je in één keer. Dat lukte {eerder} nog niet.",
+  "Hoogtepunt: {item}. {Eerder} met hulp, nu zonder.",
+  "{Eerder} had {item} een tussenstap nodig. Vandaag niet!",
+  "{Item} ging zelf, na {eerder} met hulp. Dat is trainen.",
+  "Onthoud deze: {item}, in één keer. {Eerder} lukte dat nog niet.",
+  "{Item} zat erin, zonder hulp. {Eerder} nog niet!",
+  "Bij {item} zie je het: {eerder} hulp, nu zelf.",
+  "Deze ronde ging {item} om: in één keer, na {eerder} met hulp."]},
+"einde.vanzelf": {staat: "groei", toon: "warm", r: "S13 S9 S18", v: [
+  "{Items} {v:gaat|gaan} nu vanzelf. Dat groeit in je tuin.",
+  "Nieuw in je tuin: {items}.",
+  "{Items} {v:kwam|kwamen} weer in één keer. Nu {v:gaat hij|gaan ze} vanzelf.",
+  "Je tuin kreeg er iets bij: {items}.",
+  "{Items}: vanzelf, sinds vandaag.",
+  "Vandaag {v:ging|gingen} {items} over naar vanzelf.",
+  "{Items} {v:heeft|hebben} geen tussenstap meer nodig. Kijk in je tuin.",
+  "Erbij in de tuin: {items}.",
+  "{Items} {v:zit|zitten} er nu in. Dat zie je in je tuin.",
+  "Vanaf vandaag vanzelf: {items}.",
+  "In de tuin staat nu ook {items}.",
+  "{Items} {v:is|zijn} van jou: vanzelf."]},
+"einde.terugok": {staat: "doorbraak", toon: "warm", r: "S7 S13 S16", v: [
+  "{Item} ging eerst via een tussenstap. Toen {hij} terugkwam, wist je {hem}.",
+  "Het moment: {item} kwam terug en ging in één keer.",
+  "{Item}: eerst hulp, even later zelf.",
+  "Bij {item} werkte de tussenstap. De tweede keer ging {hij} zelf.",
+  "{Item} kwam terug en zat erin.",
+  "Eerst een tussenstap bij {item}, daarna in één keer.",
+  "{Item} leerde je deze ronde: eerst met hulp, toen zelf.",
+  "De tussenstap bij {item} hielp: even later in één keer.",
+  "{Item} liet zien hoe trainen werkt: eerst samen, dan zelf.",
+  "Je deed {item} de tweede keer zonder hulp.",
+  "{Item} was eerst lastig. Bij de tweede keer niet meer.",
+  "Hoogtepunt: {item}, de tweede keer in één keer."]},
+"einde.twijfel": {staat: "twijfel", toon: "rustig", r: "S5 S9 S16", v: [
+  "Bij {item} zat je even te denken. Je kwam er zelf uit.",
+  "{Item} kostte tijd, en je bleef erbij.",
+  "{Item} vroeg geduld. Dat had je.",
+  "Bij {item} twijfelde je even. Toch zelf gevonden.",
+  "Je nam de tijd voor {item}, en vond {hem} zelf.",
+  "{Item} ging niet vanzelf, wel zelf.",
+  "Even zoeken bij {item}. Je gaf niet op.",
+  "{Item} was werk. Jij deed het.",
+  "Bij {item} hield je vol tot {hij} raak was.",
+  "{Item}: lang nadenken, zelf gedaan.",
+  "Je bleef bij {item} tot je {hem} had.",
+  "{Item} vroeg even. Je gaf het de tijd."]},
+"einde.zelf": {staat: "inzet", toon: "nuchter", r: "S5 S16 S18", v: [
+  "Je deed {item} zonder hulp.",
+  "{Item} ging in één keer.",
+  "Tot en met {item} zelf gedaan.",
+  "{Item} als laatste, in één keer.",
+  "Je sloot af met {item}, zonder hulp.",
+  "{Item}: zelf.",
+  "Het slot: {item}, in één keer.",
+  "{Item} kwam meteen.",
+  "Zonder hulp tot {item}.",
+  "Je eindigde met {item}. Zelf.",
+  "{Item} deed je in één keer.",
+  "Laatste vraag {item}: raak."]},
+"einde.morgen": {staat: "herhaling", toon: "rustig", r: "S14 S6 S18", v: [
+  "{DagT} {v:komt|komen} {items} terug.",
+  "{Items} zie je {dagT} weer.",
+  "{DagT} {v:staat|staan} {items} klaar, met hulp erbij.",
+  "{DagT} weer: {items}.",
+  "{Items} {v:komt|komen} {dagT} langs. Dan kijken we hoe het gaat.",
+  "{Items}: {dagT} nog een keer.",
+  "{DagT} kijken we samen weer naar {items}.",
+  "{Items} {v:wacht|wachten} tot {dagT}.",
+  "Tot {dagT}, {items}.",
+  "{DagT} op het lijstje: {items}.",
+  "{Items} {v:krijgt|krijgen} {dagT} een nieuwe kans.",
+  "{DagT} {v:is|zijn} {items} weer aan de beurt."]},
+"einde.lang": {staat: "vermoeidheid", toon: "rustig", r: "S8 S16 S18", v: [
+  "Dit was een lange: {minuten}. Hier stoppen is een goed moment.",
+  "{Minuten} getraind. Stoppen mag; alles staat morgen klaar.",
+  "Na {minuten} is het mooi geweest, als je wilt.",
+  "{Minuten} al. Een goed moment om te stoppen.",
+  "Je trainde {minuten}. Rust helpt ook bij onthouden.",
+  "{Minuten} bezig. Morgen gaat het verder waar je bent.",
+  "Na {minuten}: klaar voor vandaag is een prima keuze.",
+  "{Minuten} gewerkt. Jij kiest: stoppen of nog een."]},
+"einde.tuin": {staat: "groei", toon: "licht", r: "S9 S18", v: [
+  "Je {ronde} ronde vandaag. Je tuin groeit mee.",
+  "Dit was je {ronde} ronde vandaag; het perk van {training} groeit.",
+  "{Ronde} ronde vandaag, bij {training}. Ook dat zie je in de tuin.",
+  "Je tuin bij {training} kreeg je {ronde} ronde van vandaag.",
+  "Weer een ronde erbij, je {ronde} vandaag.",
+  "{Training}: je {ronde} ronde vandaag. Het perk merkt het.",
+  "De {ronde} ronde vandaag zit in je tuin.",
+  "Je {ronde} ronde {training} vandaag. Er groeit iets.",
+  "{Training} kreeg je {ronde} ronde van vandaag. Er komt iets bij.",
+  "Je {ronde} ronde bij {training} vandaag. Het perk groeit.",
+  "Weer een ronde voor het perk van {training}: je {ronde} vandaag.",
+  "Je {ronde} ronde vandaag is af. {Training} groeit mee."]}
+};
+window.PL = window.PL || {};
+const list = [];
+for (const [fam, f] of Object.entries(F)) f.v.forEach((t, i) => list.push({id: fam + "#" + (i + 1), fam, staat: f.staat, toon: f.toon, regel: f.r, t, lengte: t.length}));
+window.PL.STEM_FAM = F;
+window.PL.STEM_COPY = list;
+})();
+
+/* De stem v0.12 — de motor achter src/stem.nl.js.
+   1. Signalen (PL.stem.sig): alles wat de stem zegt, komt uit de stand van een training (items, events, sessions, stones, expl).
+      Geen signaal → geen zin (S11). Vooruitgang pas vanaf twee meetpunten (S3). Geen goed-tellingen (G1).
+   2. Zinnen (PL.stem.say): kies een variant uit een familie waarvan alle slots gevuld kunnen worden, niet een van de laatste
+      12 uit die familie (anti-herhaling), bij voorkeur passend bij het moment (register). Grammatica: enkelvoud/meervoud, getallen
+      onder de twintig voluit, dagwoorden uit echte data. De keuze is seedbaar (PL.stem.seed) voor tests.
+   Zie docs/onderbouwing.md (S1–S18, G1–G3) en docs/signalen.md. */
+(function(){
+"use strict";
+const PL = window.PL;
+const S = PL.stem = {};
+
+/* ---------- toeval dat je kunt vastzetten ---------- */
+let seed = (Date.now() ^ 0x9e3779b9) >>> 0;
+const rnd = () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+S.seed = n => { seed = (n >>> 0) || 1; };
+if (window.__plStemLog) S.log = [];   // alleen voor tests: alles wat de stem zegt, met de feiten erbij
+
+/* ---------- taal ---------- */
+const GETAL = ["nul", "één", "twee", "drie", "vier", "vijf", "zes", "zeven", "acht", "negen", "tien", "elf", "twaalf", "dertien", "veertien", "vijftien", "zestien", "zeventien", "achttien", "negentien", "twintig"];
+const RANG = ["", "eerste", "tweede", "derde", "vierde", "vijfde", "zesde", "zevende", "achtste", "negende", "tiende", "elfde", "twaalfde"];
+const EEN = {sommen: "som", woorden: "woord", landen: "land", werkwoorden: "werkwoord", zinnen: "zin", rondes: "ronde", minuten: "minuut", stappen: "stap"};
+const HET = new Set(["woorden", "landen", "werkwoorden"]);
+S.getal = n => n >= 0 && n <= 20 ? GETAL[n] : String(n);
+S.rang = n => RANG[n] || n + "e";
+S.aantal = (n, noun) => `${S.getal(n)} ${n === 1 ? (EEN[noun] || noun) : noun}`;
+S.lijst = a => a.length < 2 ? (a[0] || "") : a.slice(0, -1).join(", ") + " en " + a[a.length - 1];
+const DAG = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"];
+const MAAND = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
+const dn = iso => Math.floor(Date.parse(iso.slice(0, 10) + "T12:00:00Z") / 864e5);
+const todayIso = () => new Date().toISOString().slice(0, 10);   // dezelfde dag als de kern (today())
+S.nu = () => S._nu || todayIso();          // tests zetten S._nu vast
+const vandaag = () => dn(S.nu());
+const weekdag = n => DAG[new Date(n * 864e5).getUTCDay()];
+/* een dag in het verleden, als woord: alleen uit echte data (S18) */
+S.dag = iso => {
+  if (!iso) return ""; const n = dn(iso), ago = vandaag() - n;
+  if (ago <= 0) return "vandaag"; if (ago === 1) return "gisteren"; if (ago === 2) return "eergisteren";
+  if (ago < 7) return weekdag(n); if (ago < 14) return "vorige week";
+  const m = new Date(n * 864e5).getUTCMonth(); return ago < 60 ? "in " + MAAND[m] : "een tijd terug";
+};
+/* een dag in de toekomst (herhaalrooster) */
+S.dagT = n => { const d = n - vandaag(); if (d <= 0) return "vandaag"; if (d === 1) return "morgen"; if (d === 2) return "overmorgen"; if (d < 7) return weekdag(n); if (d < 14) return "volgende week"; return "over een paar weken"; };
+
+/* verboden woorden (S4, S5, S7, S8, G3) */
+S.VERBODEN = /\b(super\w*|geweldig\w*|perfect\w*|fantastisch\w*|ongelooflijk\w*|slim\w*|knap\w*|fout\w*|moet|moeten|hoort|horen|streak\w*|verloren|gemist|makkelijk\w*|gemakkelijk\w*|moeilijk\w*|niveau\w*|groep\w*)\b|al \S+ dagen niet/i;
+
+/* ---------- zinnen ---------- */
+S.mem = {recent: {}, lines: []};             // home en tuin: philearn-stem; een training: data.voice
+const MAX = 12;
+const slotsOf = t => [...t.matchAll(/\{([A-Za-z]+)\}/g)].map(m => m[1].toLowerCase()).filter(k => !["hij", "hem"].includes(k));
+const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+function fill(t, sl){
+  const pl = !!sl.pl, het = sl.genus === "het";
+  let s = t.replace(/\{v:([^|}]*)\|([^}]*)\}/g, (_, a, b) => pl ? b : a)
+    .replace(/\{(hij|Hij|hem|Hem)\}/g, (_, w) => { const v = pl ? "ze" : het ? "het" : w.toLowerCase(); return w[0] === "H" ? cap(v) : v; })
+    .replace(/\{([A-Za-z]+)\}/g, (_, k) => { const v = sl[k.toLowerCase()]; return k[0] === k[0].toUpperCase() ? cap(String(v)) : String(v); });
+  // elke zin met een hoofdletter (een item als "7 × 8" blijft zoals het is)
+  // dagwoorden passend maken bij het voorzetsel ervoor ("sinds in september" → "sinds september")
+  s = s.replace(/\bsinds in /g, "sinds ").replace(/\bsinds een tijd terug\b/g, "al een tijd").replace(/\bvan in /g, "uit ").replace(/\btot over een paar weken\b/g, "over een paar weken").replace(/\bop vandaag\b/g, "vandaag");
+  return s.replace(/(^|[.!?]\s+)([a-zàáäéëèïíóöúü])/g, (m, a, b) => a + b.toUpperCase()).replace(/\s+/g, " ").trim();
+}
+/* register (S10): eerste ronde van de dag kort en licht; avond rustig (geen uitroepteken); na een doorbraak mag het energieker */
+function past(v, reg){ if (!reg) return true; if (reg === "kort") return v.t.length <= 64; if (reg === "rustig") return !v.t.includes("!"); return true; }
+S.say = function(fam, slots, mem){
+  const F = PL.STEM_FAM[fam]; if (!F) return "";
+  mem = mem || S.mem; mem.recent = mem.recent || {}; mem.lines = mem.lines || [];
+  const sl = {}; for (const [k, v] of Object.entries(slots || {})) sl[k.toLowerCase()] = v;
+  const ok = F.v.map((t, i) => ({t, id: fam + "#" + (i + 1)})).filter(v => slotsOf(v.t).every(k => sl[k] != null && sl[k] !== ""));
+  if (!ok.length) return "";
+  const rec = mem.recent[fam] || [];
+  let cand = ok.filter(v => !rec.includes(v.id));
+  if (!cand.length){ const age = v => rec.indexOf(v.id); cand = ok.slice().sort((a, b) => age(a) - age(b)).slice(0, 1); }   // alles kort geleden gebruikt: de oudste
+  const reg = cand.filter(v => past(v, sl.reg)); if (reg.length) cand = reg;
+  // geen exacte herhaling van een eerder getoonde zin
+  const fresh = cand.filter(v => !mem.lines.includes(fill(v.t, sl))); if (fresh.length) cand = fresh;
+  const v = cand[Math.floor(rnd() * cand.length)];
+  const out = fill(v.t, sl);
+  mem.recent[fam] = rec.filter(x => x !== v.id).concat([v.id]).slice(-MAX);
+  mem.lines = mem.lines.concat([out]).slice(-60);
+  S.last = {id: v.id, fam, text: out};
+  if (S.log) S.log.push({id: v.id, fam, text: out, feiten: slotsOf(v.t).map(k => sl[k])});
+  return out;
+};
+S.loadMem = async store => { try { const m = await store.load("philearn-stem"); if (m && m.recent) S.mem = m; } catch(e){} };
+S.saveMem = store => { try { return store.save("philearn-stem", S.mem); } catch(e){} };
+
+/* ---------- labels: het item zonder antwoord ---------- */
+const vast = s => String(s).replace(/ ([×:+=−\-?]) /g, "\u00a0$1\u00a0").replace(/ ([=?])$/g, "\u00a0$1");   // een som breekt niet over twee regels
+S.label = (T, k) => vast(labelRaw(T, k));
+const labelRaw = (T, k) => {
+  try { if (T.voiceLabel) return T.voiceLabel(k); } catch(e){}
+  try { const it = T.fromKey && T.fromKey(k); if (it && it.label && (T.id === "rekenmuur" || T.id === "tafels")) return it.label; } catch(e){}
+  try { if (T.keyLabel) return T.keyLabel(k); } catch(e){}
+  return k;
+};
+S.genus = T => HET.has(T.noun) ? "het" : "de";
+
+/* ---------- signalen ---------- */
+const sig = S.sig = {};
+const known = r => !!r && r.fl >= 2 && r.last === "ok";
+const real = d => ((d && d.sessions) || []).filter(s => (s.rounds || 0) > 0);
+const itemEvents = d => ((d && d.events) || []).filter(e => e.k != null && e.ok1 != null && e.land == null && !e.round);
+const day = e => (e.t || "").slice(0, 10);
+const isHelp = e => /^vol/.test(e.sup || "") || /\+knop/.test(e.sup || "");
+sig.lastSession = d => { const ss = real(d); return ss.length ? ss[ss.length - 1] : null; };
+sig.lastItem = d => { const ev = itemEvents(d); return ev.length ? ev[ev.length - 1] : null; };
+sig.roundsOn = (d, iso) => real(d).filter(s => s.d === iso).reduce((a, s) => a + (s.rounds || 0), 0);
+sig.roundsWeek = d => { const t = vandaag(); return real(d).filter(s => t - dn(s.d) < 7).reduce((a, s) => a + (s.rounds || 0), 0); };
+sig.daysSince = d => { const s = sig.lastSession(d); return s ? vandaag() - dn(s.d) : null; };
+/* doorbraak: een item dat op eerdere dagen minstens twee keer niet in één keer lukte, nu (op de laatste dag) in één keer */
+sig.breakthroughs = (d, sinceIso) => {
+  const by = {}; for (const e of itemEvents(d)) (by[e.k] = by[e.k] || []).push(e);
+  const out = [];
+  for (const [k, es] of Object.entries(by)){
+    const last = es[es.length - 1]; if (!last.ok1) continue;
+    const fi = es.map(e => !e.ok1).lastIndexOf(true); if (fi < 0) continue;
+    const first = es[fi + 1];                                   // de eerste keer in één keer na de laatste tussenstap
+    const before = es.slice(0, fi + 1).filter(e => !e.ok1 && day(e) < day(first));
+    if (before.length < 2) continue;
+    if (sinceIso && day(first) < sinceIso) continue;
+    out.push({k, dag: day(first), eerder: day(before[before.length - 1]), t: first.t});
+  }
+  return out.sort((a, b) => (b.t || "").localeCompare(a.t || ""));
+};
+/* is dit (nu, of sinds tijdstip t0) de doorbraak? Eerdere dagen ≥ 2× niet in één keer, en daarna nog nooit in één keer */
+sig.breakNow = (d, k, sinceT) => {
+  const es = itemEvents(d).filter(e => e.k === k), before = sinceT ? es.filter(e => (e.t || "") < sinceT) : es;
+  const fi = before.map(e => !e.ok1).lastIndexOf(true); if (fi < 0) return null;
+  if (before.slice(fi + 1).some(e => e.ok1)) return null;
+  const fails = before.slice(0, fi + 1).filter(e => !e.ok1 && day(e) < S.nu());
+  return fails.length >= 2 ? {eerder: day(fails[fails.length - 1])} : null;
+};
+/* nieuwste item dat vanzelf gaat (d = de laatste dag dat het lukte) */
+sig.newestKnown = d => { const it = Object.entries((d && d.items) || {}).filter(([, r]) => known(r) && r.d).sort((a, b) => (b[1].d || "").localeCompare(a[1].d || "")); return it.length ? {k: it[0][0], d: it[0][1].d} : null; };
+sig.knownCount = d => Object.values((d && d.items) || {}).filter(known).length;
+/* herhaalrooster: wat wanneer terugkomt (uit due) en wat rust */
+sig.schedule = d => {
+  const t = vandaag(), groups = {}, rest = [];
+  for (const [k, r] of Object.entries((d && d.items) || {})){
+    if (!r || r.due == null) continue;
+    if (r.due - t > 6) rest.push({k, due: r.due}); else (groups[Math.max(r.due, t)] = groups[Math.max(r.due, t)] || []).push(k);
+  }
+  return {soon: Object.entries(groups).map(([n, ks]) => ({n: +n, ks})).sort((a, b) => a.n - b.n), rest: rest.sort((a, b) => a.due - b.due)};
+};
+sig.dueToday = d => { const t = vandaag(); return Object.entries((d && d.items) || {}).filter(([, r]) => r && r.due != null && r.due <= t && r.last === "ok").map(([k]) => k); };
+/* minder hulp: eerder met het model (vol) of de knop, op een latere dag in één keer zonder */
+sig.helpDrop = d => {
+  const by = {}; for (const e of itemEvents(d)) (by[e.k] = by[e.k] || []).push(e);
+  const out = [];
+  for (const [k, es] of Object.entries(by)){
+    const last = es[es.length - 1]; if (!last.ok1 || isHelp(last)) continue;
+    const h = es.filter(e => day(e) < day(last) && isHelp(e)); if (!h.length) continue;
+    out.push({k, dag: day(last), eerder: day(h[h.length - 1]), t: last.t});
+  }
+  return out.sort((a, b) => (b.t || "").localeCompare(a.t || ""));
+};
+/* vlotter: hetzelfde item in één keer op twee dagen, nu duidelijk sneller (≥ 25% en ≥ 0,8 s) */
+sig.faster = d => {
+  const by = {}; for (const e of itemEvents(d)) if (e.ok1 && e.rt != null) (by[e.k] = by[e.k] || []).push(e);
+  const out = [];
+  for (const [k, es] of Object.entries(by)){
+    const last = es[es.length - 1], prev = es.filter(e => day(e) < day(last)); if (!prev.length) continue;
+    const p = prev[prev.length - 1]; if (last.rt < p.rt * 0.75 && p.rt - last.rt > 800) out.push({k, dag: day(last), eerder: day(p), t: last.t});
+  }
+  return out.sort((a, b) => (b.t || "").localeCompare(a.t || ""));
+};
+/* uitleg: landde hij (dezelfde vraag even later in één keer)? */
+sig.uitleg = d => ((d && d.events) || []).filter(e => e.land != null && e.k).map(e => ({k: e.k, mode: e.ex, ok: !!e.land, t: e.t})).reverse();
+/* vastlopen in een ronde: de laatste twee vragen niet in één keer */
+sig.stuck = res => { const it = res.items.filter(x => !x.requeue); const l = it.slice(-2); return l.length === 2 && l.every(x => !x.first) ? l.map(x => x.item.key) : null; };
+/* vermoeidheid: sessie langer dan een kwartier, of binnen de ronde steeds trager (laatste drie ≥ 1,4 × eerste drie) */
+sig.tired = (S0, res, sessionMin) => { const min = (Date.now() - S0.t0) / 60000; const r = res.rts || []; const med = a => a.length ? a.slice().sort((x, y) => x - y)[Math.floor(a.length / 2)] : null; const slow = r.length >= 6 && med(r.slice(-3)) >= 1.4 * med(r.slice(0, 3)); return {min: Math.round(min), lang: min >= sessionMin, slow}; };
+/* twijfel bij één vraag: veel langer dan haar eigen mediaan bij die steen, of twee keer of vaker gewist */
+sig.doubt = (stone, ms, cor) => { const r = (stone && stone.rts) || []; if (cor >= 2) return true; if (r.length < 3) return false; const m = r.slice().sort((a, b) => a - b)[Math.floor(r.length / 2)]; return ms > Math.max(2 * m, m + 4000); };
+/* weekoverzicht over alle trainingen: welke kreeg de meeste rondes (alleen als er ≥ 2 zijn) */
+sig.weekTop = (states, trainings) => { let best = null; for (const T of trainings){ const n = sig.roundsWeek(states[T.id]); if (n >= 2 && (!best || n > best.n)) best = {T, n}; } return best; };
+})();
+
 /* De tuin v0.9 — groei zonder getal.
    Elke training heeft een tuintje; wat erin groeit hangt aan wat ze trainde (afgeronde rondes, wat vanzelf gaat, wat na dagen
    nog vanzelf gaat, stenen die groen zijn). Rekenen = planten en bomen, taal = bloemen, topografie = insecten. De rups die een
@@ -2319,7 +3133,7 @@ PL.tuinPlan = function(maat){
 
 /* ---------- stand-ins in code (tot er een render is) ---------- */
 const SVG = {
-  lieveheersbeestje: `<svg viewBox="0 0 60 44"><ellipse cx="30" cy="40" rx="20" ry="3" fill="rgba(0,0,0,.18)"/><circle cx="14" cy="22" r="9" fill="#44333D"/><circle cx="11" cy="20" r="2.6" fill="#fff"/><circle cx="11.6" cy="20.4" r="1.4" fill="#2a1d24"/><circle cx="17" cy="19.5" r="2.4" fill="#fff"/><circle cx="17.5" cy="20" r="1.3" fill="#2a1d24"/><path d="M11 26 Q14 28 17 26" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round"/><ellipse cx="34" cy="22" rx="18" ry="15" fill="#C12F78"/><path d="M34 7 V37" stroke="#44333D" stroke-width="1.6"/><circle cx="27" cy="16" r="3" fill="#44333D"/><circle cx="41" cy="17" r="3" fill="#44333D"/><circle cx="28" cy="28" r="2.6" fill="#44333D"/><circle cx="41" cy="29" r="2.6" fill="#44333D"/><ellipse cx="30" cy="13" rx="7" ry="3" fill="rgba(255,255,255,.45)"/></svg>`,
+  lieveheersbeestje: `<svg viewBox="0 0 60 44"><ellipse cx="30" cy="40" rx="20" ry="3" fill="rgba(0,0,0,.18)"/><circle cx="14" cy="22" r="9" fill="#44333D"/><ellipse cx="34" cy="22" rx="18" ry="15" fill="#C12F78"/><path d="M34 7 V37" stroke="#44333D" stroke-width="1.6"/><circle cx="27" cy="16" r="3" fill="#44333D"/><circle cx="41" cy="17" r="3" fill="#44333D"/><circle cx="28" cy="28" r="2.6" fill="#44333D"/><circle cx="41" cy="29" r="2.6" fill="#44333D"/><ellipse cx="30" cy="13" rx="7" ry="3" fill="rgba(255,255,255,.45)"/></svg>`,
   mier: `<svg viewBox="0 0 60 36"><ellipse cx="30" cy="33" rx="22" ry="2.5" fill="rgba(0,0,0,.16)"/><g stroke="#5a4250" stroke-width="1.6" stroke-linecap="round" fill="none"><path d="M22 22 L16 31 M28 23 L28 31 M34 22 L40 31"/><path d="M12 10 Q8 2 4 4 M14 10 Q14 2 10 1"/></g><ellipse cx="44" cy="20" rx="10" ry="7" fill="#7a5a6a"/><ellipse cx="30" cy="20" rx="6" ry="5" fill="#7a5a6a"/><circle cx="16" cy="16" r="8" fill="#8a6878"/><circle cx="13" cy="14" r="2.6" fill="#fff"/><circle cx="13.4" cy="14.4" r="1.4" fill="#2a1d24"/><path d="M11 19 Q13 21 15.5 19" stroke="#fff" stroke-width="1.1" fill="none" stroke-linecap="round"/></svg>`,
   bij: `<svg viewBox="0 0 60 48"><g class="gd-wing"><ellipse cx="26" cy="12" rx="10" ry="7" fill="rgba(255,255,255,.75)" stroke="rgba(150,150,170,.6)"/><ellipse cx="36" cy="11" rx="9" ry="6" fill="rgba(255,255,255,.6)" stroke="rgba(150,150,170,.5)"/></g><ellipse cx="32" cy="28" rx="17" ry="13" fill="#F2B544"/><path d="M28 16 Q25 28 28 40 M37 16 Q34 28 37 40" stroke="#44333D" stroke-width="4.5" fill="none"/><circle cx="17" cy="26" r="9" fill="#F5C45A"/><circle cx="14" cy="24" r="2.8" fill="#fff"/><circle cx="14.5" cy="24.4" r="1.5" fill="#2a1d24"/><circle cx="20" cy="23.5" r="2.4" fill="#fff"/><circle cx="20.4" cy="24" r="1.3" fill="#2a1d24"/><path d="M14 29 Q17 31.5 20 29" stroke="#44333D" stroke-width="1.2" fill="none" stroke-linecap="round"/><circle cx="12" cy="28.5" r="1.6" fill="#F19CB1" opacity=".8"/></svg>`,
   sprinkhaan: `<svg viewBox="0 0 70 44"><ellipse cx="34" cy="41" rx="24" ry="2.5" fill="rgba(0,0,0,.16)"/><path d="M40 26 L54 10 L60 38" stroke="#5E9E3E" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="36" cy="27" rx="20" ry="8" fill="#7DBE4F"/><circle cx="16" cy="22" r="9" fill="#8ACB5A"/><circle cx="13" cy="20" r="2.8" fill="#fff"/><circle cx="13.5" cy="20.4" r="1.5" fill="#2a1d24"/><path d="M12 25.5 Q15 27.5 18 25.5" stroke="#2f5a22" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M14 14 Q10 4 4 3 M18 14 Q18 4 14 1" stroke="#5E9E3E" stroke-width="1.4" fill="none"/></svg>`,
@@ -3084,7 +3898,7 @@ const T = {
     const nieuw = [...new Set(fresh)];
     return `<div class="tf-kaartwrap tf-roze tf-bloei" id="tf-kaartwrap">${kaart(ctx, {pop: nieuw})}${nieuw.length ? `<div class="tf-petals" aria-hidden="true">${range(1, 10).map(i => `<i style="left:${rnd(2, 96)}%;animation-delay:${(i * 0.18).toFixed(2)}s"></i>`).join("")}</div>` : ""}</div>
       ${nieuw.length ? `<p class="pl-note">Nieuw op je tafelkaart: ${nieuw.map(k => fromKey(k).label).join(", ")}.</p>` : ""}
-      <p class="pl-note">${(() => { const S = ctx.data.sessions[ctx.data.sessions.length - 1] || {}; const n = S.items || res.items.length; return `Je bent vandaag ${n} ${n === 1 ? "steen" : "stenen"} over het pad gesprongen.`; })()}</p>`;
+      <p class="pl-note">${(() => { const S = ctx.data.sessions[ctx.data.sessions.length - 1] || {}; const n = S.items || res.items.length; return `Je bent vandaag ${PL.stem ? PL.stem.getal(n) : n} ${n === 1 ? "steen" : "stenen"} over het pad gesprongen.`; })()}</p>`;
   },
   keyLabel: k => fact(fromKey(k)),
   canDo(ctx){ return Object.keys(ctx.data.items).filter(k => ctx.known(k)).map(k => fact(fromKey(k))).slice(0, 60); },
