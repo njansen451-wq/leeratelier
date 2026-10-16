@@ -309,6 +309,134 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
   .pl-app.pl-wide .pl-ask-main{font-size:clamp(1.6rem,2.6vw,2.3rem)}
 }
 
+/* ======================= v0.11 — Laws of UX (zie CHANGELOG): zelfde tokens, nieuwe indeling ======================= */
+/* toegankelijkheid: zichtbare focusring op alles wat je kunt bedienen */
+:focus-visible{outline:3px solid var(--pl-violet);outline-offset:2px}
+summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3px solid var(--pl-violet);outline-offset:2px}
+.pl-between{justify-content:space-between}
+.pl-center{text-align:center;margin:0}
+.pl-full{width:100%;display:block}
+.pl-btn.pl-full{min-height:52px}
+
+/* Home: begroeting met de foto ernaast, nooit erover (Prägnanz) */
+.pl-hero{min-height:0;padding:16px 18px;gap:14px;overflow:visible}
+.pl-hero-img{position:static;width:72px;height:72px;flex:none;border-radius:50%;object-fit:cover;object-position:50% 20%;border:3px solid var(--pl-surface);box-shadow:0 4px 12px -6px rgba(68,51,61,.5)}
+.pl-hero-flower{display:grid;place-items:center;background:var(--pl-surface)}
+.pl-hero-flower svg{width:48px;height:48px}
+.pl-hero-text{max-width:none;flex:1;min-width:0;gap:2px}
+.pl-hero-text .pl-h2{margin:0}
+.pl-today .pl-h2{margin:0}
+.pl-today .pl-lead{margin:0}
+.pl-today-open{border:2px solid var(--pl-violet)}
+/* vakken (Chunking, Similarity): kop per vak, rijen met dezelfde bloem in de kleur van het vak */
+.pl-group{display:grid;gap:8px}
+.pl-cathead{margin:6px 0 0;font-family:var(--pl-body)}
+.pl-area-list{display:grid;gap:10px;align-content:start}
+.pl-listrow{min-height:64px;padding:10px 14px;width:100%}
+.pl-badge svg{width:30px;height:30px}
+.pl-rowtop{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pl-listtext .pl-rowtop b{font-weight:600;font-family:var(--pl-display);font-size:1.08rem;color:var(--pl-ink)}
+.pl-listtext .pl-sub{font-size:.85rem;color:var(--pl-ink-soft)}
+.pl-tag{display:inline-block;font-size:.75rem;font-weight:600;letter-spacing:.03em;color:var(--pl-violet-deep);background:var(--pl-violet-soft);border-radius:var(--pl-r-pill);padding:1px 8px}
+.pl-listtext .pl-status{font-size:.8rem;color:var(--pl-ink-soft);margin-top:2px}
+.pl-listtext .pl-status.s-nieuw{color:var(--pl-violet-deep);font-weight:500}
+.pl-makelink{justify-self:start}
+.pl-tuinkaart{display:grid;gap:10px}
+.pl-tuinkaart .pl-lead{margin:0}
+.pl-tuinkaart #pl-tuin{cursor:pointer}
+.pl-grownlist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.pl-grownlist li{display:flex;flex-wrap:wrap;gap:4px 10px;justify-content:space-between;background:var(--pl-paper);border-radius:12px;padding:8px 12px}
+.pl-grownlist b{font-weight:500}
+.pl-grownlist span{color:var(--pl-ink-soft);font-size:.92rem}
+.pl-narrow{max-width:760px}
+.pl-region .pl-note{margin:0}
+
+/* Home op een groot scherm (Proximity, Common Region): links begroeting, Vandaag en Mijn tuin; rechts de vakken in twee kolommen */
+.pl-home{display:grid;gap:14px;grid-template-areas:"hero" "today" "list" "tuin"}
+.pl-home > .pl-hero{grid-area:hero}.pl-area-today{grid-area:today}.pl-area-list{grid-area:list}.pl-area-tuin{grid-area:tuin}
+@media (min-width:1024px){
+  .pl-app.pl-homeapp{max-width:1200px;padding-inline:32px}
+  .pl-home{grid-template-columns:minmax(320px,400px) 1fr;grid-template-areas:"hero list" "today list" "tuin list";grid-template-rows:auto auto 1fr;column-gap:32px;align-items:start}
+  .pl-grid2{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* kop van een training (Jakob's Law): terug naar Home linksboven, Geluid en Mijn tuin rechts */
+.pl-top{position:relative}
+.pl-backhome{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--pl-line);background:var(--pl-surface);border-radius:var(--pl-r-pill);min-height:44px;padding:8px 16px 8px 14px;font-weight:500;cursor:pointer;flex:none;color:var(--pl-ink)}
+.pl-backhome:hover{border-color:var(--pl-violet)}
+.pl-chev-l{transform:rotate(135deg);margin:0 0 0 4px;width:9px;height:9px}
+.pl-tuinbtn{display:inline-flex;align-items:center;gap:6px;padding-left:10px}
+.pl-btnflower{display:inline-flex;width:22px;height:22px;flex:none}
+.pl-btnflower svg{width:100%;height:100%}
+.pl-top-tr .pl-title{min-width:0}
+.pl-top-tr .pl-title h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.pl-soundpanel{position:absolute;right:0;top:calc(100% + 6px);z-index:30;background:var(--pl-surface);border:1px solid var(--pl-line);border-radius:var(--pl-r-card);padding:8px;display:grid;gap:2px;min-width:240px;box-shadow:0 14px 30px -16px rgba(68,51,61,.55)}
+.pl-toggle{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 10px;border-radius:12px;cursor:pointer}
+.pl-toggle:hover{background:var(--pl-paper)}
+.pl-toggle input{appearance:none;-webkit-appearance:none;width:44px;height:26px;border-radius:999px;background:var(--pl-line);position:relative;flex:none;margin:0;cursor:pointer;transition:background .15s}
+.pl-toggle input::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:var(--pl-surface);box-shadow:0 1px 3px rgba(68,51,61,.4);transition:transform .15s}
+.pl-toggle input:checked{background:var(--pl-violet)}
+.pl-toggle input:checked::after{transform:translateX(18px)}
+@media (max-width:700px){
+  .pl-top-tr{flex-wrap:wrap;row-gap:8px}
+  .pl-top-tr .pl-topbtns{margin-left:auto}
+  .pl-top-tr .pl-title{order:3;flex:1 1 100%}
+}
+@media (max-width:380px){.pl-top-tr .pl-garden-btn,.pl-backhome{padding-inline:10px}}
+
+/* startscherm (Hick, Occam, Fitts): uitleg → vorm → één Start onderin */
+.pl-intro{width:100%;max-width:640px;margin-inline:auto;display:flex;flex-direction:column;gap:14px}
+.pl-app.pl-wide .pl-intro{max-width:760px}
+.pl-startcard{display:grid;gap:10px}
+.pl-startcard .pl-h2,.pl-startcard .pl-lead,.pl-startcard .pl-greet,.pl-startcard .pl-daarna{margin:0}
+.pl-grow{display:flex;align-items:center;gap:8px;margin:0;color:var(--pl-ink)}
+.pl-segwrap{display:grid;gap:6px;margin-top:4px}
+.pl-seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--pl-paper);border:1.5px solid var(--pl-line);border-radius:var(--pl-r-pill);padding:4px}
+.pl-seg .pl-form{margin:0;border:0;background:transparent;border-radius:var(--pl-r-pill);min-height:44px;padding:8px 12px;text-align:center;font-family:var(--pl-display);font-weight:600;font-size:1.05rem;display:block;color:var(--pl-ink)}
+.pl-seg .pl-form[aria-checked="true"]{background:var(--pl-surface);color:var(--pl-violet-deep);box-shadow:0 0 0 2px var(--pl-violet)}
+.pl-formdesc{margin:0}
+.pl-links{gap:4px 16px}
+.pl-details summary{cursor:pointer;color:var(--pl-violet-deep);font-weight:500;min-height:44px;display:flex;align-items:center;text-decoration:underline;text-underline-offset:3px}
+.pl-details[open] summary{margin-bottom:6px}
+.pl-actions{display:grid;gap:8px}
+@media (max-width:700px){
+  .pl-actions{position:sticky;bottom:0;z-index:6;background:var(--pl-paper);padding:10px 0 calc(10px + env(safe-area-inset-bottom,0px));box-shadow:0 -12px 14px -14px rgba(68,51,61,.35)}
+  .pl-app{padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+}
+
+/* ronde (Goal-Gradient, Flow): een balk met "2 van 6"; geen kop-tierlantijnen tijdens de ronde */
+.pl-roundprog{display:flex;align-items:center;gap:12px}
+.pl-roundprog .pl-bar{flex:1;width:auto;max-width:none;height:10px}
+.pl-count{font-size:.95rem;font-weight:500;color:var(--pl-ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pl-dots{display:none}
+.pl-app.pl-inround .pl-foot{display:none}
+.pl-app.pl-inround{gap:10px;padding-top:10px}
+.pl-round{gap:12px}
+@media (max-width:700px){.pl-app.pl-inround .pl-top-tr .pl-title{display:none}}
+/* "Gelukt" in een vaste strook onderin (Fitts, Doherty): schuift erover, duwt niets weg */
+.pl-sheet{position:fixed;left:0;right:0;bottom:0;z-index:25;margin-inline:auto;max-width:640px;background:var(--pl-surface);border:1px solid var(--pl-line);border-bottom:0;border-radius:22px 22px 0 0;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));box-shadow:0 -14px 30px -18px rgba(68,51,61,.55);transform:translateY(105%);transition:transform .18s ease-out}
+.pl-sheet.open{transform:none}
+.pl-sheet .pl-ok{display:grid;gap:12px;background:var(--pl-leaf-soft);border:2px solid var(--pl-leaf);padding:12px 14px}
+.pl-ok-text{margin:0}
+.pl-sheet .pl-verder{float:none;margin:0;border:0;min-height:52px;font-family:var(--pl-display);font-size:1.2rem;background:var(--pl-violet);color:#fff;border-radius:var(--pl-r-pill)}
+.pl-sheet .pl-verder:hover{background:var(--pl-violet-deep)}
+
+/* einde van een ronde (Peak-End): kort feestje, wat erbij groeide, één volgende stap */
+.pl-endcard{display:grid;gap:12px}
+.pl-endtop{display:flex;align-items:center;gap:10px}
+.pl-endtop .pl-h2{margin:0}
+.pl-endflower{width:44px;height:44px;display:inline-flex;animation:pl-bloei .5s ease-out}
+.pl-endflower svg{width:100%;height:100%}
+@keyframes pl-bloei{from{transform:scale(.6) rotate(-20deg);opacity:0}to{transform:none;opacity:1}}
+.pl-nextline{margin:0}
+.pl-nextline b{color:var(--pl-ink);font-weight:600}
+.pl-chipbtn{min-height:44px;padding:8px 18px;font-size:1rem}
+.pl-endcard .pl-fact{margin:0}
+.pl-btnflower svg{width:auto;height:100%;margin-inline:auto}
+.pl-grow .pl-btnflower{height:24px}
+/* tijdens "Gelukt" is de invoer even rustig: één opvallende knop in beeld (Von Restorff) */
+.pl-round:has(.pl-sheet.open) .pl-keypad{opacity:.35;pointer-events:none}
+
 /* De tuin v0.8: lagen (lucht, heuvels, wei, tuintjes, gras), licht volgens de klok, beweging die meegroeit (gd-t0 … gd-t3).
    Alleen transform, opacity en filter; bij "minder beweging" staat alles stil (core.css). Geen tekst. */
 .gd{opacity:0;transition:opacity .8s}
@@ -684,6 +812,22 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 .tf-jumps span{font-size:1.3rem;padding:4px 12px}
 .tf-world.stap .tf-chain{font-size:1.6rem}
 
+/* v0.11: de tafelkaart buiten het spel in de roze kleuren, drie standen: nog nieuw (open), geoefend (lichtroze), gaat vanzelf (roze).
+   Omgekeerd en de rij × 1 zien eruit als "gaat vanzelf". */
+.tf-roze{background:var(--pl-surface);border:1.5px solid var(--pl-line);border-radius:14px;padding:10px;max-width:320px;box-sizing:border-box}
+.tf-roze .tf-kh{color:var(--pl-ink-soft)}
+.tf-roze .tf-cell,.tf-legend .tf-cell{background:var(--pl-surface);box-shadow:inset 0 0 0 1.5px var(--pl-line)}
+.tf-roze .tf-cell i,.tf-legend .tf-cell i{inset:0;background:transparent}
+.tf-roze .tf-cell.kiem,.tf-legend .tf-cell.kiem{background:var(--pl-lilac);box-shadow:none}
+.tf-roze .tf-cell.bloem,.tf-legend .tf-cell.bloem{background:var(--pl-violet);box-shadow:none}
+.tf-roze .tf-cell.bloem i,.tf-legend .tf-cell.bloem i,.tf-roze .tf-cell.bloem.spiegel i,.tf-roze .tf-cell.bloem.cadeau i{background:none}
+.tf-roze .tf-cell.now{box-shadow:0 0 0 2px var(--pl-surface),0 0 0 4px var(--pl-violet-deep)}
+.tf-legend .tf-sw{background:var(--pl-paper)}
+.tf-details{margin-top:4px}
+/* v0.11: de geluidsknoppen staan in de kop; onderin is geen ruimte meer voor nodig (Flow: geen scrollen op 375×667) */
+.tf-play{padding-bottom:16px}
+@media (max-width:560px){.tf-play{padding-bottom:14px}.tf-world,.tf-world .tf-play{min-height:min(70vh,560px)}}
+
 .sp-board{display:grid;gap:14px}
 .sp-frame{font-family:var(--pl-display);font-weight:600;font-size:clamp(1.8rem,6vw,2.6rem);margin:0;line-height:1.15}
 .sp-frame b{color:var(--pl-leaf)}
@@ -742,7 +886,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 </style>
 </head>
 <body>
-<!-- Leeratelier Leeratelier v0.10. Gebouwd op de Leeratelier-kern v0.10. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
+<!-- Leeratelier Leeratelier v0.11. Gebouwd op de Leeratelier-kern v0.11. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
 <main class="pl-app" id="pl-app"></main>
 
 
@@ -763,7 +907,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 (function(){
 "use strict";
 const PL = window.PL = {};
-PL.VERSION = "v0.10";
+PL.VERSION = "v0.11";
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -805,10 +949,28 @@ PL.flower = function(petals, opts){
   if (opts.stem !== false) s += `<path d="M29 40 V68" stroke="#2F8F5E" stroke-width="3" stroke-linecap="round"/><path d="M29 58 C 36 52, 44 54, 46 50 C 40 49, 33 51, 29 56" fill="#2F8F5E"/>`;
   for (let i = 0; i < n; i++){
     const a = (i / n) * Math.PI * 2 - Math.PI / 2, cx = 29 + Math.cos(a) * 11, cy = 24 + Math.sin(a) * 11;
-    s += `<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="8" ry="11" transform="rotate(${(a * 180 / Math.PI + 90).toFixed(0)} ${cx.toFixed(1)} ${cy.toFixed(1)})" fill="${i < on ? "#F19CB1" : "#ECE3E8"}"/>`;
+    s += `<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="8" ry="11" transform="rotate(${(a * 180 / Math.PI + 90).toFixed(0)} ${cx.toFixed(1)} ${cy.toFixed(1)})" fill="${i < on ? (opts.petal || "#F19CB1") : "#ECE3E8"}"/>`;
   }
-  return s + `<circle cx="29" cy="24" r="6.5" fill="#C12F78"/></svg>`;
+  return s + `<circle cx="29" cy="24" r="6.5" fill="${opts.heart || "#C12F78"}"/></svg>`;
 };
+
+/* ---------- v0.11 geluid (Doherty Threshold): een zacht toontje bij "Gelukt", binnen 400 ms. Eén knop "Geluid" in de kop;
+   een training kan eigen geluiden toevoegen (Tafelreis: Natuurgeluiden, Muziek). Voorkeur in localStorage "pl-geluid". ---------- */
+let chimeCtx = null;
+const chimeOn = () => { try { return localStorage.getItem("pl-geluid") !== "uit"; } catch(e){ return true; } };
+PL.chime = function(){
+  if (!chimeOn() || window.__plSnel) return;
+  try {
+    chimeCtx = chimeCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const c = chimeCtx, t = c.currentTime;
+    [[587.33, 0], [880, .09]].forEach(([f, d]) => { const o = c.createOscillator(), g = c.createGain(); o.type = "sine"; o.frequency.value = f; g.gain.setValueAtTime(0.0001, t + d); g.gain.exponentialRampToValueAtTime(0.08, t + d + .02); g.gain.exponentialRampToValueAtTime(0.0001, t + d + .5); o.connect(g); g.connect(c.destination); o.start(t + d); o.stop(t + d + .55); });
+  } catch(e){}
+};
+function soundItems(T){
+  const own = (T.sound && T.sound.items) || [];
+  const core = T.sound && T.sound.ownFeedback ? [] : [{key: "geluidjes", label: "Geluidjes bij gelukt", get: chimeOn, set: on => { try { localStorage.setItem("pl-geluid", on ? "aan" : "uit"); } catch(e){} if (on) PL.chime(); }}];
+  return core.concat(own);
+}
 
 /* ---------- opslag ---------- */
 async function makeStore(){
@@ -881,9 +1043,9 @@ const OBS = {
   step:     {w: 6, v: [f => `Bij ${f.L} nam je een tussenstap, en daarna vond je het zelf. Zo werkt trainen.`, f => `${cap1(f.L)} deed je via een tussenstap. Die weg heb je straks niet meer nodig.`]},
   adjOk:    {w: 5, v: [f => ({veel: "Met de extra opwarmers ging het rustiger.", snel: "Rustiger aan werkte: je nam de tijd die je nodig had.", lang: "Een korte ronde is ook een ronde.", uitleg: `De andere uitleg, ${f.M}, heb je gebruikt.`})[f.adj] || ""]},
   reqStill: {w: 5, v: [f => `${cap1(f.L)} kwam twee keer langs met een tussenstap. Hij komt nog eens terug; zo wordt hij van jou.`, f => `Bij ${f.L} heb je de tussenstap twee keer gezet. Volgende keer komt hij weer, met dezelfde hulp.`]},
-  fluent:   {w: 5, v: [f => `${f.fl} ${f.noun} wist je meteen, zonder te hoeven denken. Dat is wat trainen doet.`, f => `De meeste ${f.noun} kwamen meteen, zonder tellen.`]},
+  fluent:   {w: 5, v: [f => `Veel ${f.noun} wist je meteen, zonder te hoeven denken. Dat is wat trainen doet.`, f => `De meeste ${f.noun} kwamen meteen, zonder tellen.`]},
   wise:     {w: 4, v: [f => `Ik geef je deze ${f.noun} omdat ik weet dat je ze kunt leren. Elke tussenstap laat zien dat het gebeurt.`]},
-  allSelf:  {w: 3, v: [f => `Je deed ${f.n} ${f.noun} achter elkaar zelf, tot en met ${f.last}.`, f => `Alles in deze ronde deed je zelf, tot en met ${f.last}.`]},
+  allSelf:  {w: 3, v: [f => `Je deed de ${f.noun} achter elkaar zelf, tot en met ${f.last}.`, f => `Alles in deze ronde deed je zelf, tot en met ${f.last}.`]},
   roundN:   {w: 2, v: [f => `Dit is al je ${ORD[f.r] || f.r + "e"} ronde vandaag.`, f => `Je ${ORD[f.r] || f.r + "e"} ronde vandaag. Je bleef erbij.`]}
 };
 const GROUPS = [["explHelp", "reqOk", "step", "reqStill"], ["fluent", "allSelf"]];
@@ -987,7 +1149,7 @@ PL.chooseExpl = function(modes, stats, avoid, rand){
 /* ---------- begroeting: tijd van de dag, hoe lang geleden, wat vorige keer veranderde ---------- */
 PL.greet = function(o){
   // o: {first, hour, daysSince, adjust, adjName, due}
-  const title = o.first ? "Hallo Natalia" : o.hour >= 5 && o.hour < 12 ? "Goedemorgen" : o.hour >= 18 ? "Goedenavond" : "Welkom terug";
+  const title = "Hoi Natalia";   // v0.11: overal dezelfde begroeting (Home en elke training)
   const parts = [];
   if (o.adjust) parts.push(({veel: "Vorige keer was het pittig. Ik begin daarom met meer uit wat al lukt.", snel: "Vorige keer ging het te snel. Ik doe het nu rustiger.", lang: "Vorige keer duurde het lang. De eerste ronde is korter.", uitleg: `Vorige keer hielp de uitleg niet. Ik probeer nu ${o.adjName || "een andere manier"}.`})[o.adjust] || "");
   if (!o.first && o.daysSince != null){
@@ -1013,23 +1175,78 @@ PL.boot = async function(){
   [store] = await Promise.all([makeStore(), detectAI()]);
   PL._store = store;
   content = (await store.load(CONTENT_KEY)) || {packs: []};
-  const want = (location.hash || "").slice(1);
-  const T = trainings.find(t => t.id === want) || (trainings.length === 1 ? trainings[0] : null);
-  if (T) PL.start(T); else PL.home();
+  const {id, view} = parseHash();
+  const T = trainings.find(t => t.id === id) || (trainings.length === 1 ? trainings[0] : null);
+  if (T) PL.start(T, {routed: true}); else PL.homeRoute(id, view);
 };
 
+/* ---------- v0.11: vakken, voortgang en een open ronde (Laws of UX, zie CHANGELOG) ---------- */
+/* Similarity + Chunking: drie vakken met elk één kleur. Het icoon is overal dezelfde bloem, in de kleur van het vak. */
+const CATS = [{id: "rekenen", name: "Rekenen", petal: "#C12F78", soft: "var(--pl-violet-soft)"}, {id: "taal", name: "Taal", petal: "#B9790F", soft: "var(--pl-honey-soft)"}, {id: "wereld", name: "Wereld", petal: "#2F8F5E", soft: "var(--pl-leaf-soft)"}];
+const catOf = T => T.cat || (/rekenen/i.test(T.subject || "") ? "rekenen" : /topografie/i.test(T.subject || "") ? "wereld" : "taal");
+const catIcon = (id, cls) => { const c = CATS.find(x => x.id === id) || CATS[0]; return `<span class="pl-badge ${cls || ""}" style="background:${c.soft}" aria-hidden="true">${PL.flower(5, {stem: false, petal: c.petal, heart: "#FFFFFF"})}</span>`; };
+PL._catOf = catOf;
+const knownRec = r => !!r && r.fl >= 2 && r.last === "ok";
+/* Groei zonder eindpunt (grondbeginsel: geen scores, geen levels; je traint, en met trainen gaat het steeds beter).
+   Er is geen totaal en geen balk die vol moet: alleen wanneer ze trainde en wat al vanzelf gaat. Dat getal kan alleen groeien. */
+const NOUN1 = {sommen: "som", woorden: "woord", landen: "land", werkwoorden: "werkwoord", zinnen: "zin"};
+const nounN = (n, noun) => n === 1 ? (NOUN1[noun] || noun) : noun;
+const whenText = d => { if (!d) return ""; const ago = dayNum(today()) - dayNum(d); return ago <= 0 ? "Vandaag getraind" : ago === 1 ? "Gisteren getraind" : ago < 7 ? `${ago} dagen geleden getraind` : "Even geleden getraind"; };
+PL.growthOf = function(T, d){
+  const ss = realSessions(d), known = Object.values((d && d.items) || {}).filter(knownRec).length;
+  const last = ss.length ? ss[ss.length - 1].d : "";
+  return {sessions: ss.length, known, last, status: ss.length ? whenText(last) : "Nieuw",
+    text: known ? `${known} ${nounN(known, T.noun)} ${known === 1 ? "gaat" : "gaan"} al vanzelf.` : ss.length ? "Wat vanzelf gaat, groeit mee met elke ronde." : ""};
+};
+/* Zeigarnik: een ronde die halverwege verlaten is, blijft staan (data.open) tot ze hem afmaakt; ouder dan 3 dagen telt niet. */
+const openRound = d => { const o = d && d.open; if (!o || !o.q || !o.q.length) return null; if (dayNum(today()) - dayNum((o.d || "").slice(0, 10)) > 3) return null; return o; };
+PL._openRound = openRound;
+
+/* ---------- route (Jakob's Law): elk scherm een eigen adres, zodat "terug" op de telefoon in de app blijft ---------- */
+let routing = false;
+function setRoute(h, replace){
+  const want = h ? "#" + h : location.pathname + location.search;
+  if (("#" + h) === location.hash || (!h && !location.hash)) return;
+  try { history[replace ? "replaceState" : "pushState"]({pl: 1}, "", want); } catch(e){ if (!replace) location.hash = h; }
+}
+PL._route = setRoute;
+const parseHash = () => { const raw = decodeURIComponent((location.hash || "").slice(1)); const [id, view] = raw.split("/"); return {id: id || "", view: view || ""}; };
+
 /* ---------- groepen (v0.10): trainingen met T.group staan op home als één regel; tik → kies het deel (bv. de regio) ---------- */
+const GROUP_ROUTE = {topo: "landen"};
 function listRows(){
   const out = [], seen = {};
   for (const T of trainings){
     if (!T.group){ out.push(T); continue; }
     if (seen[T.group]) continue;
-    seen[T.group] = 1; out.push({isGroup: true, id: T.group, title: T.groupTitle, tint: T.tint, glyph: "W", subject: T.subject, members: trainings.filter(t => t.group === T.group)});
+    const members = trainings.filter(t => t.group === T.group);
+    seen[T.group] = 1; out.push({isGroup: true, id: T.group, route: GROUP_ROUTE[T.group] || T.group, title: T.groupTitle, tint: T.tint, subject: T.subject, cat: catOf(T), members,
+      sub: `${T.subject} · ${members.filter(m => m.id !== "wereld").length} werelddelen`});
   }
   return out;
 }
-function groupRow(G, make){
-  return `<button type="button" class="pl-listrow" data-group="${esc(G.id)}"${make ? ' data-make-group="1"' : ""}><span class="pl-badge" style="background:${G.tint || "#F4DDE3"}">${G.glyph}</span><span class="pl-listtext"><b>${esc(G.title)}</b><span>${esc(G.subject || "")} · ${G.members.map(m => m.groupName).join(", ")}</span></span><span class="pl-chev"></span></button>`;
+/* groei van een groep: landen die al vanzelf gaan, over alle delen samen (elk land één keer) */
+function groupGrowth(G, states){
+  const codes = new Set(), ss = [];
+  for (const m of G.members){ ss.push(...realSessions(states[m.id])); for (const [k, r] of Object.entries((states[m.id] && states[m.id].items) || {})) if (knownRec(r)) codes.add(k.slice(k.indexOf(":") + 1)); }
+  const last = ss.map(s => s.d).sort().pop() || "", known = codes.size;
+  return {sessions: ss.length, known, last, status: ss.length ? whenText(last) : "Nieuw", text: known ? `${known} ${nounN(known, "landen")} ${known === 1 ? "gaat" : "gaan"} al vanzelf.` : ss.length ? "Wat vanzelf gaat, groeit mee met elke ronde." : ""};
+}
+function rowHTML(R, states, todayId, make){
+  const isG = !!R.isGroup, pr = isG ? groupGrowth(R, states) : PL.growthOf(R, states[R.id]);
+  const sub = isG ? R.sub : (R.subject || "");
+  const isToday = !make && (isG ? R.members.some(m => m.id === todayId) : R.id === todayId);
+  const attr = isG ? `data-group="${esc(R.id)}"` : make ? `data-make="${esc(R.id)}"` : `data-start="${esc(R.id)}"`;
+  // a11y: de knop krijgt één duidelijke naam (titel, vak, status, voortgang)
+  const label = `${R.title}. ${sub}. ${isToday ? "Vandaag. " : ""}${pr.status}.${pr.known ? " " + pr.text : ""}`;
+  return `<button type="button" class="pl-listrow pl-card-row" ${attr} aria-label="${esc(label)}">${catIcon(R.cat || catOf(R))}
+    <span class="pl-listtext"><span class="pl-rowtop"><b>${esc(R.title)}</b>${isToday ? `<span class="pl-tag">Vandaag</span>` : ""}</span><span class="pl-sub">${esc(sub)}</span>
+    ${make ? "" : `<span class="pl-status${pr.sessions ? "" : " s-nieuw"}">${esc(pr.status)}</span>`}</span><span class="pl-chev" aria-hidden="true"></span></button>`;
+}
+function groupedList(states, todayId, make){
+  const rows = listRows();
+  return CATS.map(c => { const rs = rows.filter(R => (R.cat || catOf(R)) === c.id); if (!rs.length) return "";
+    return `<section class="pl-group" aria-labelledby="pl-cat-${c.id}"><h2 class="pl-eyebrow pl-cathead" id="pl-cat-${c.id}">${c.name}</h2><div class="pl-list pl-grid2">${rs.map(R => rowHTML(R, states, todayId, make)).join("")}</div></section>`; }).join("");
 }
 /* voor de tuin: alle delen van een groep samen in één tuintje (het tuintje van het eerste deel, bv. europa) */
 function mergeGroups(states){
@@ -1043,89 +1260,178 @@ function mergeGroups(states){
   }
   return st;
 }
-async function showGroup(gid, make, states){
-  const G = listRows().find(r => r.isGroup && r.id === gid), app = $("pl-app"), sec = app.querySelector(".pl-screen");
-  const stat = T => { const d = states && states[T.id]; if (!d) return "nog nieuw"; const n = realSessions(d).length; const known = Object.keys(d.items || {}).filter(k => { const r = d.items[k]; return r && r.last === "ok"; }).length; return n ? `${n}× getraind${known ? " · " + known + " gevonden" : ""}` : "nog nieuw"; };
-  sec.innerHTML = `<div class="pl-card" style="display:grid;gap:12px"><h2 class="pl-h2">${esc(G.title)}</h2><p class="pl-lead">${make ? "Bedenk je ronde: in welk deel?" : "Welk deel van de wereld?"}</p>
-    <div class="pl-regions">${G.members.map(T => `<button type="button" class="pl-region" data-r="${esc(T.id)}"><b>${esc(T.groupName)}</b><span>${T.groupCount} landen</span><span class="pl-note">${esc(stat(T))}</span></button>`).join("")}</div></div>
-    <div class="pl-row"><button class="pl-btn quiet" id="pl-group-back" type="button">Terug</button></div>`;
-  sec.querySelectorAll("[data-r]").forEach(b => b.addEventListener("click", () => { location.hash = b.dataset.r; PL.start(trainings.find(t => t.id === b.dataset.r), make ? {make: true} : {}); }));
-  $("pl-group-back").addEventListener("click", () => PL.home());
+/* wat er gegroeid is, in woorden: "12 sommen en 5 woorden gaan vanzelf" (Peak-End, Von Restorff) */
+function grownLine(states){
+  const per = {};
+  for (const T of trainings){ const d = states[T.id]; if (!d) continue; const n = Object.values(d.items || {}).filter(knownRec).length; if (n) per[T.noun] = (per[T.noun] || 0) + n; }
+  const parts = Object.entries(per).map(([noun, n]) => `${n} ${nounN(n, noun)}`);
+  if (!parts.length) return "";
+  const tot = Object.values(per).reduce((a, b) => a + b, 0);
+  return `${lst(parts)} ${tot === 1 ? "gaat" : "gaan"} al vanzelf.`;
+}
+async function loadStates(){ const states = {}; for (const T of trainings) states[T.id] = (await store.load("philearn-" + T.id)) || null; return states; }
+
+async function showGroup(gid, make, states, fromRoute){
+  states = states || await loadStates();
+  const G = listRows().find(r => r.isGroup && r.id === gid), app = $("pl-app");
+  if (!G) return PL.home();
+  homeFrame(app, G.title, true);
+  if (!fromRoute) setRoute(G.route + (make ? "/bedenk" : ""));
+  const sec = app.querySelector(".pl-screen");
+  const stat = T => PL.growthOf(T, states[T.id]).status;
+  sec.innerHTML = `<div class="pl-card pl-narrow" style="display:grid;gap:12px"><p class="pl-lead">${make ? "Bedenk je ronde: in welk deel?" : "Welk deel van de wereld?"}</p>
+    <div class="pl-regions">${G.members.map(T => `<button type="button" class="pl-region" data-r="${esc(T.id)}"><b>${esc(T.groupName)}</b><span>${T.groupCount} landen</span><span class="pl-note">${esc(stat(T))}</span></button>`).join("")}</div></div>`;
+  sec.querySelectorAll("[data-r]").forEach(b => b.addEventListener("click", () => { setRoute(b.dataset.r + (make ? "/bedenk" : "")); PL.start(trainings.find(t => t.id === b.dataset.r), make ? {make: true, routed: true} : {routed: true}); }));
+  wireParent(null, states);
 }
 PL._showGroup = showGroup;
 
+/* kop voor home-schermen: op home het merkteken, op een subscherm "terug naar Home" linksboven (Jakob's Law) */
+function homeFrame(app, title, sub){
+  app.classList.remove("pl-wide", "pl-inround"); app.classList.add("pl-homeapp");
+  app.innerHTML = `
+  <header class="pl-top">
+    ${sub ? `<button class="pl-backhome" id="pl-back-home" type="button"><span class="pl-chev pl-chev-l" aria-hidden="true"></span>Home</button>` : ""}
+    <button class="pl-logo" id="pl-logo" type="button" aria-label="Leeratelier"${sub ? " hidden" : ""}>${PL.flower(5, {stem: false})}</button>
+    <div class="pl-title"><h1>${esc(title)}</h1>${sub ? "" : `<p class="pl-helps">Trainingen voor Natalia</p>`}</div>
+  </header>
+  <section class="pl-screen"></section>
+  <div class="pl-foot" id="pl-foot">Leeratelier ${PL.VERSION}</div>
+  <div class="pl-parent" id="pl-parent" hidden></div>`;
+  const b = $("pl-back-home"); if (b) b.addEventListener("click", () => { setRoute(""); PL.home(); });
+}
+
 /* ---------- startscherm met alle trainingen ---------- */
 PL.home = async function(){
-  PL._current = null; PL._guard = null;
-  const app = $("pl-app"); app.classList.remove("pl-wide");
-  const states = {};
-  for (const T of trainings) states[T.id] = (await store.load("philearn-" + T.id)) || null;
+  PL._current = null; PL._guard = null; PL._view = null;
+  const app = $("pl-app");
+  const states = await loadStates();
   const dn = dayNum(today());
   const dueCount = T => { const it = (states[T.id] && states[T.id].items) || {}; return Object.keys(it).filter(k => it[k] && it[k].due != null && it[k].due <= dn && it[k].last === "ok").length; };
   const played = T => realSessions(states[T.id]);
   const lastDay = T => { const ss = played(T); return ss.length ? ss[ss.length - 1].d : ""; };
-  // "Vandaag": alleen trainingen met een afgeronde ronde; eerst wat volgens het herhaalschema klaarstaat, anders de laatst gespeelde. Met reden (C7).
+  // "Vandaag" (Pareto): het pad van 80%. Een open ronde gaat voor (Zeigarnik); anders wat klaarstaat om te herhalen, anders de laatst gespeelde.
+  const opens = trainings.map(T => ({T, o: openRound(states[T.id])})).filter(x => x.o).sort((a, b) => (b.o.d || "").localeCompare(a.o.d || ""));
+  const open = opens[0] || null;
   const cand = trainings.filter(T => played(T).length);
   const last = cand.slice().sort((a, b) => dueCount(b) - dueCount(a) || lastDay(b).localeCompare(lastDay(a)))[0] || trainings[0];
   const ld = lastDay(last), ago = ld ? dn - dayNum(ld) : null;
   const why = !cand.length ? "Hier begin je. De basis komt eerst." : dueCount(last) ? "Omdat er iets klaarstaat om te herhalen." : ago === 0 ? "Omdat je hier vandaag al trainde." : ago === 1 ? "Omdat je hier gisteren trainde." : "Omdat je hier de vorige keer trainde.";
-  const lastOk = Object.values((states[last.id] && states[last.id].items) || {}).some(r => r && r.last === "ok");
-  const sessions = trainings.flatMap(T => played(T)).sort((a, b) => a.d.localeCompare(b.d)).slice(-24);
-  app.innerHTML = `
-  <header class="pl-top">
-    <button class="pl-logo" id="pl-logo" type="button" aria-label="Leeratelier">${PL.flower(5, {stem: false})}</button>
-    <div class="pl-title"><h1>Leeratelier</h1><p class="pl-helps">Trainingen voor Natalia</p></div>
-  </header>
-  <section class="pl-screen">
-    <div class="pl-hero">
-      <div class="pl-hero-text"><h2 class="pl-h2">${sessions.length ? "Welkom terug" : "Hoi Natalia"}</h2><p class="pl-lead">Zin in een kwartiertje trainen? ${cand.length && lastOk ? "We beginnen met iets wat vorige keer lukte." : "Begin bij Vandaag, of kies zelf."}</p></div>
-      ${PL.face ? `<img class="pl-hero-img" src="${PL.face}" alt="">` : ""}
-    </div>
+  const todayT = open ? open.T : last;
+  homeFrame(app, "Leeratelier", false);
+  const grown = grownLine(states);
+  const anyRound = trainings.some(T => played(T).length);
+  const sec = app.querySelector(".pl-screen");
+  sec.classList.add("pl-home");
+  const todayCard = open ? `
+    <div class="pl-card pl-today pl-today-open">
+      <div class="pl-row pl-between"><span class="pl-eyebrow">Ga verder</span><span class="pl-note">± ${P.sessionMin} min</span></div>
+      <h2 class="pl-h2">${esc(open.T.title)}</h2>
+      <p class="pl-lead">Vraag ${open.o.i + 1} van ${open.o.total}. Je ronde staat nog klaar.</p>
+      <button class="pl-btn big pl-full" type="button" data-resume="${esc(open.T.id)}">Ga verder</button>
+    </div>` : `
     <div class="pl-card pl-today">
-      <div class="pl-row" style="justify-content:space-between"><span class="pl-eyebrow">Vandaag</span><span class="pl-note">${P.sessionMin} min</span></div>
-      <h2 class="pl-h2" style="margin:0">${esc(last.title)}</h2>
+      <div class="pl-row pl-between"><span class="pl-eyebrow">Vandaag</span><span class="pl-note">± ${P.sessionMin} min</span></div>
+      <h2 class="pl-h2">${esc(last.title)}</h2>
       <p class="pl-lead">Je oefent: ${esc(last.practices || last.helps)}</p>
       <p class="pl-note pl-why-today">${esc(why)}</p>
-      <button class="pl-btn big" type="button" data-start="${esc(last.id)}">Start training</button>
+      <button class="pl-btn big pl-full" type="button" data-start="${esc(last.id)}">Start training</button>
+    </div>`;
+  sec.innerHTML = `
+    <div class="pl-hero">
+      ${PL.face ? `<img class="pl-hero-img" src="${PL.face}" alt="">` : `<span class="pl-hero-img pl-hero-flower" aria-hidden="true">${PL.flower(5, {stem: false})}</span>`}
+      <div class="pl-hero-text"><h2 class="pl-h2">Hoi Natalia</h2><p class="pl-lead">Zin in een kwartiertje trainen?</p></div>
     </div>
-    <span class="pl-eyebrow">Mijn trainingen</span>
-    <div class="pl-list">${listRows().map(T => T.isGroup ? groupRow(T) : `<button type="button" class="pl-listrow" data-start="${esc(T.id)}"><span class="pl-badge" style="background:${T.tint || "#F4DDE3"}">${T.glyph || ""}</span><span class="pl-listtext"><b>${esc(T.title)}</b><span>${esc(T.subject || "")}${played(T).length ? " · " + played(T).length + "× getraind" : ""}</span></span><span class="pl-chev"></span></button>`).join("")}</div>
-    <button type="button" class="pl-make" id="pl-make"><span class="pl-listtext"><b>Bedenk je ronde</b><span>Kies wat je wilt oefenen; ik laat zien wat ik ervan maak</span></span><span class="pl-plus" aria-hidden="true"></span></button>
-    <div class="pl-tuinwrap pl-tuin-onder" id="pl-tuin"></div>
-  </section>
-  <div class="pl-foot" id="pl-foot">Leeratelier ${PL.VERSION}</div>
-  <div class="pl-parent" id="pl-parent" hidden></div>`;
-  app.querySelectorAll("[data-start]").forEach(b => b.addEventListener("click", () => { location.hash = b.dataset.start; PL.start(trainings.find(t => t.id === b.dataset.start)); }));
+    <div class="pl-area-today">${todayCard}</div>
+    <div class="pl-area-list">
+      ${groupedList(states, todayT.id)}
+      <button type="button" class="pl-help pl-makelink" id="pl-make">Bedenk je ronde</button>
+    </div>
+    <div class="pl-area-tuin">
+      <div class="pl-card pl-tuinkaart">
+        <div class="pl-row pl-between"><h2 class="pl-eyebrow pl-cathead">Mijn tuin</h2></div>
+        <div class="pl-tuinwrap pl-tuin-onder" id="pl-tuin" aria-hidden="true"></div>
+        <p class="pl-lead pl-grown">${anyRound ? esc(grown || "Je tuin groeit met elke ronde die je afmaakt.") : "Hier groeit je tuin. Maak je eerste ronde af, dan komt er iets op."}</p>
+        <button type="button" class="pl-btn quiet pl-full" id="pl-open-tuin">Bekijk mijn tuin</button>
+      </div>
+    </div>`;
+  app.querySelectorAll("[data-start]").forEach(b => b.addEventListener("click", () => { setRoute(b.dataset.start); PL.start(trainings.find(t => t.id === b.dataset.start), {routed: true}); }));
+  app.querySelectorAll("[data-resume]").forEach(b => b.addEventListener("click", () => { setRoute(b.dataset.resume + "/ronde"); PL.start(trainings.find(t => t.id === b.dataset.resume), {resume: true, routed: true}); }));
   app.querySelectorAll("[data-group]").forEach(b => b.addEventListener("click", () => showGroup(b.dataset.group, false, states)));
   if (PL.tuin) PL.tuin($("pl-tuin"), {states: mergeGroups(states), strook: true});
-  $("pl-make").addEventListener("click", () => {
-    if (trainings.length === 1){ PL.start(trainings[0], {make: true}); return; }
-    const sec = app.querySelector(".pl-screen");
-    sec.innerHTML = `<div class="pl-card" style="display:grid;gap:12px"><h2 class="pl-h2">Bedenk je ronde</h2><p class="pl-lead">In welke training?</p>
-      <div class="pl-list">${listRows().map(T => T.isGroup ? groupRow(T, true) : `<button type="button" class="pl-listrow" data-make="${esc(T.id)}"><span class="pl-badge" style="background:${T.tint || "#F4DDE3"}">${T.glyph || ""}</span><span class="pl-listtext"><b>${esc(T.title)}</b><span>${esc(T.subject || "")}</span></span><span class="pl-chev"></span></button>`).join("")}</div></div>
-      <div class="pl-row"><button class="pl-btn quiet" id="pl-make-back" type="button">Terug</button></div>`;
-    sec.querySelectorAll("[data-make]").forEach(b => b.addEventListener("click", () => { location.hash = b.dataset.make; PL.start(trainings.find(t => t.id === b.dataset.make), {make: true}); }));
-    sec.querySelectorAll("[data-group]").forEach(b => b.addEventListener("click", () => showGroup(b.dataset.group, true, states)));
-    $("pl-make-back").addEventListener("click", () => PL.home());
-  });
+  const openT = () => showHomeGarden(states);
+  $("pl-open-tuin").addEventListener("click", openT);
+  $("pl-tuin").addEventListener("click", openT);
+  $("pl-make").addEventListener("click", () => showHomeMake(states));
   wireParent(null, states);
+};
+/* Mijn tuin vanaf home (#tuin): de hele tuin, en in woorden wat vanzelf gaat. In de tuin zelf staat geen tekst. */
+async function showHomeGarden(states, fromRoute){
+  states = states || await loadStates();
+  const app = $("pl-app"); homeFrame(app, "Mijn tuin", true);
+  if (!fromRoute) setRoute("tuin");
+  const sec = app.querySelector(".pl-screen");
+  const lines = listRows().map(R => { const pr = R.isGroup ? groupGrowth(R, states) : PL.growthOf(R, states[R.id]); return pr.sessions ? `<li><b>${esc(R.title)}</b><span>${esc(pr.text)}</span></li>` : ""; }).join("");
+  sec.innerHTML = `<div class="pl-card pl-narrow" style="display:grid;gap:12px">
+      <div class="pl-tuinwrap" id="pl-tuin"></div>
+      ${lines ? `<ul class="pl-grownlist">${lines}</ul>` : `<p class="pl-lead">Hier groeit je tuin. Maak je eerste ronde af, dan komt er iets op. Elke training heeft zijn eigen plekje.</p>`}
+    </div>
+    <div class="pl-actions"><button class="pl-btn quiet pl-full" id="pl-tuin-back" type="button">Terug</button></div>`;
+  $("pl-tuin-back").addEventListener("click", () => { setRoute(""); PL.home(); });
+  if (PL.tuin) PL.tuin($("pl-tuin"), {states: mergeGroups(states)});
+  wireParent(null, states);
+}
+/* Bedenk je ronde vanaf home (#bedenk): eerst de training kiezen (Tesler: de keuze zit ook in elke training) */
+async function showHomeMake(states, fromRoute){
+  states = states || await loadStates();
+  if (trainings.length === 1){ PL.start(trainings[0], {make: true}); return; }
+  const app = $("pl-app"); homeFrame(app, "Bedenk je ronde", true);
+  if (!fromRoute) setRoute("bedenk");
+  const sec = app.querySelector(".pl-screen");
+  sec.innerHTML = `<p class="pl-lead">In welke training?</p>${groupedList(states, "", true)}`;
+  sec.querySelectorAll("[data-make]").forEach(b => b.addEventListener("click", () => { setRoute(b.dataset.make + "/bedenk"); PL.start(trainings.find(t => t.id === b.dataset.make), {make: true, routed: true}); }));
+  sec.querySelectorAll("[data-group]").forEach(b => b.addEventListener("click", () => showGroup(b.dataset.group, true, states)));
+  wireParent(null, states);
+}
+/* home-routes: "", tuin, bedenk, landen(/bedenk) */
+PL.homeRoute = function(id, view){
+  const G = listRows().find(r => r.isGroup && r.route === id);
+  if (G) return showGroup(G.id, view === "bedenk", null, true);
+  if (id === "tuin") return showHomeGarden(null, true);
+  if (id === "bedenk") return showHomeMake(null, true);
+  return PL.home();
 };
 
 /* ---------- één training ---------- */
 PL.start = async function(T, opts){
   opts = opts || {};
-  const app = $("pl-app"); app.classList.toggle("pl-wide", !!T.wide);   // v0.10: een training mag 90% van de breedte gebruiken (de kaart)
+  const app = $("pl-app"); app.classList.remove("pl-homeapp", "pl-inround"); app.classList.toggle("pl-wide", !!T.wide);   // v0.10: een training mag 90% van de breedte gebruiken (de kaart)
+  if (!opts.routed){ const h = parseHash(); if (h.id !== T.id) setRoute(T.id + (opts.make ? "/bedenk" : opts.resume ? "/ronde" : ""), true); }
+  /* v0.11 kop (Jakob's Law, Mental Model): linksboven terug naar Home, rechts Geluid en Mijn tuin (met de bloem); de titel eronder.
+     Lang drukken op de titel opent het ouderscherm (zoals het merkteken op home). */
+  const sounds = soundItems(T);
   app.innerHTML = `
-  <header class="pl-top">
-    <button class="pl-logo" id="pl-logo" type="button" aria-label="Leeratelier">${PL.flower(5, {stem: false})}</button>
-    <div class="pl-title"><h1>${esc(T.title)}</h1><p class="pl-helps">Je oefent: ${esc(T.practices || T.helps)}</p></div>
-    <div class="pl-topbtns">${trainings.length > 1 ? `<button class="pl-garden-btn" id="pl-home-btn" type="button">Home</button>` : ""}
-    <button class="pl-garden-btn" id="pl-garden-btn" type="button">Laat zien</button></div>
+  <header class="pl-top pl-top-tr">
+    ${trainings.length > 1 ? `<button class="pl-backhome" id="pl-home-btn" type="button"><span class="pl-chev pl-chev-l" aria-hidden="true"></span>Home</button>` : ""}
+    <div class="pl-title" id="pl-logo"><h1>${esc(T.title)}</h1></div>
+    <div class="pl-topbtns">
+      ${sounds.length ? `<button class="pl-garden-btn" id="pl-sound-btn" type="button" aria-expanded="false" aria-controls="pl-sound">Geluid</button>` : ""}
+      <button class="pl-garden-btn pl-tuinbtn" id="pl-garden-btn" type="button"><span class="pl-btnflower" aria-hidden="true">${PL.flower(5, {stem: false})}</span>Mijn tuin</button>
+    </div>
+    ${sounds.length ? `<div class="pl-soundpanel" id="pl-sound" role="group" aria-label="Geluid" hidden>${sounds.map(x => `<label class="pl-toggle"><input type="checkbox" data-sound="${esc(x.key)}" ${x.get() ? "checked" : ""}><span>${esc(x.label)}</span></label>`).join("")}</div>` : ""}
   </header>
   <section class="pl-screen" id="pl-screen"></section>
   <div class="pl-foot" id="pl-foot">${esc(T.title)} ${esc(T.version)} · Leeratelier ${PL.VERSION}</div>
   <div class="pl-parent" id="pl-parent" hidden></div>`;
+  if (sounds.length){
+    const sb = $("pl-sound-btn"), sp = $("pl-sound");
+    sb.addEventListener("click", () => { sp.hidden = !sp.hidden; sb.setAttribute("aria-expanded", String(!sp.hidden)); });
+    sp.querySelectorAll("[data-sound]").forEach(c => c.addEventListener("change", () => sounds.find(x => x.key === c.dataset.sound).set(c.checked)));
+    document.addEventListener("click", e => { if (!sp.hidden && !sp.contains(e.target) && e.target !== sb){ sp.hidden = true; sb.setAttribute("aria-expanded", "false"); } });
+  }
   const screen = $("pl-screen");
+  let view = parseHash().id === T.id ? parseHash().view : "";
+  const route = (v, rep) => { const was = view; view = v; if (parseHash().id === T.id && parseHash().view === v) return; setRoute(T.id + (v ? "/" + v : ""), rep || (was === v)); };
   const KEY = "philearn-" + T.id;
   const base = {v: 3, stage: 1, items: {}, stones: {}, sessions: [], events: [], forms: {A: {rounds: 0, again: 0}, B: {rounds: 0, again: 0}}, lastForm: "A", cooldown: 0, hold: 0, lastPlayed: "",
     expl: {}, explPending: {}, adjust: null, lines: []};
@@ -1149,9 +1455,10 @@ PL.start = async function(T, opts){
   let rulesShow = () => {};   // wordt per ronde gezet (playRound)
   function waitNext(ms, run){
     if (window.__plSnel) ms = Math.min(ms, T.pause || 900);   // alleen voor tests/ux.py: de oude snelheid
-    const box = $("pl-fb") && $("pl-fb").querySelector(".pl-ok");
+    const box = $("pl-sheet") && $("pl-sheet").querySelector(".pl-ok");
     if (!box) return sleep(ms);
-    box.insertAdjacentHTML("beforeend", `<button type="button" class="pl-verder" id="pl-verder">Verder</button>`);
+    // v0.11 (Fitts): "Verder" over de hele breedte, onderin waar de duim al is; zonder tikken gaat het vanzelf verder
+    box.insertAdjacentHTML("beforeend", `<button type="button" class="pl-btn pl-full pl-verder" id="pl-verder">Verder</button>`);
     return new Promise(res => {
       const done = () => { clearTimeout(t); document.removeEventListener("keydown", key); res(); };
       const key = e => { if (e.key === "Enter" && !e.repeat) setTimeout(done, 0); };
@@ -1226,11 +1533,13 @@ PL.start = async function(T, opts){
     setAsk(lead, main){ $("pl-ask-lead").textContent = lead || ""; $("pl-ask-main").textContent = main || ""; },
     /* feedback: drie vaste vormen. Tijdens een tussenstap blijft haar eigen antwoord in beeld (C3): fb.tried(waarde). */
     fb: {
-      ok(text){ tried = null; $("pl-fb").innerHTML = `<div class="pl-ok"><b>Gelukt</b>${esc(text)}</div>`; },
-      step(text){ rulesShow(true); $("pl-fb").innerHTML = `<div class="pl-step">${tried != null ? `<span class="pl-tried">Jouw antwoord: ${esc(tried)}</span>` : ""}<b>Tussenstap</b>${esc(text)}</div>`; },
+      // v0.11: "Gelukt" komt in een vaste strook onderin (geen verspringende inhoud), met een zacht toontje
+      ok(text){ tried = null; $("pl-fb").innerHTML = ""; const sh = $("pl-sheet"); if (!sh) return; sh.innerHTML = `<div class="pl-ok" role="status"><p class="pl-ok-text"><b>Gelukt</b>${esc(text)}</p></div>`; sh.hidden = false; requestAnimationFrame(() => sh.classList.add("open")); if (!(T.sound && T.sound.ownFeedback)) PL.chime(); },
+      step(text){ rulesShow(true); ctx.fb.clearSheet(); $("pl-fb").innerHTML = `<div class="pl-step">${tried != null ? `<span class="pl-tried">Jouw antwoord: ${esc(tried)}</span>` : ""}<b>Tussenstap</b>${esc(text)}</div>`; },
       tried(v){ tried = v; },
-      note(text){ $("pl-fb").innerHTML = `<p class="pl-note">${esc(text)}</p>`; },
-      clear(){ $("pl-fb").innerHTML = ""; }
+      clearSheet(){ const sh = $("pl-sheet"); if (sh && !sh.hidden){ sh.classList.remove("open"); sh.hidden = true; sh.innerHTML = ""; } },
+      note(text){ ctx.fb.clearSheet(); $("pl-fb").innerHTML = `<p class="pl-note">${esc(text)}</p>`; },
+      clear(){ $("pl-fb").innerHTML = ""; const sh = $("pl-sheet"); if (sh){ sh.classList.remove("open"); sh.hidden = true; sh.innerHTML = ""; } }
     }
   };
   PL.ctx = ctx;
@@ -1241,32 +1550,39 @@ PL.start = async function(T, opts){
     const a = data.adjust;
     return PL.greet({first: !data.sessions.length, hour: new Date().getHours(), daysSince: last == null ? null : dn - last, adjust: a && a.kind, adjName: a && a.mode ? ctx.modeName(a.mode) : "", due: dueN > 0});
   }
-  /* startscherm (C6): de laatst gekozen vorm staat klaar; Start gaat direct naar de eerste vraag; "Andere vorm" klapt de keuze open */
-  function showStart(){
-    const g = greeting(), chosenBefore = data.sessions.length > 0;
+  /* startscherm v0.11 (Hick, Occam): één regel uitleg → de vorm als keuze uit twee (onthouden) → één Start over de hele breedte,
+     onderin (Fitts). Een open ronde gaat voor (Zeigarnik): "Ga verder". Wat al vanzelf gaat, staat er als groei, zonder totaal. */
+  function showStart(fromRoute){
+    if (!fromRoute) route("");
+    app.classList.remove("pl-inround");
+    const g = greeting(), gr = PL.growthOf(T, data), op = openRound(data);
     screen.innerHTML = `
+      <div class="pl-intro">
       <div class="pl-card pl-startcard">
         <h2 class="pl-h2">${esc(g.title)}</h2>
         <p class="pl-lead">${esc(T.startText(ctx))}</p>
         ${g.note ? `<p class="pl-note pl-greet">${esc(g.note)}</p>` : ""}
-        <div class="pl-row pl-startrow"><button class="pl-btn big" id="pl-go" type="button">Start</button>
-          <span class="pl-note" id="pl-formnow">Vorm: ${esc(T.forms[form].name)}</span>
-          <button class="pl-help" id="pl-formtoggle" type="button" aria-expanded="${!chosenBefore}" aria-controls="pl-forms">Andere vorm</button></div>
-        <div class="pl-forms" id="pl-forms" role="group" aria-label="Kies hoe je traint" ${chosenBefore ? "hidden" : ""}>
-          ${["A", "B"].map(f => `<button type="button" class="pl-form" data-form="${f}" aria-pressed="${f === form}"><b>${esc(T.forms[f].name)}</b><span>${esc(T.forms[f].desc)}</span></button>`).join("")}
-        </div>
+        ${gr.text ? `<p class="pl-grow"><span class="pl-btnflower" aria-hidden="true">${PL.flower(5, {stem: false})}</span>${esc(gr.text)}</p>` : ""}
+        <div class="pl-segwrap"><span class="pl-eyebrow" id="pl-seg-l">Hoe wil je trainen?</span>
+          <div class="pl-seg" role="radiogroup" aria-labelledby="pl-seg-l">${["A", "B"].map(f => `<button type="button" role="radio" class="pl-form" data-form="${f}" aria-checked="${f === form}">${esc(T.forms[f].name)}</button>`).join("")}</div>
+          <p class="pl-note pl-formdesc" id="pl-formdesc">${esc(T.forms[form].desc)}</p></div>
         ${T.startExtra ? T.startExtra(ctx) : ""}
-        ${T.allRound ? `<div class="pl-allround"><button class="pl-btn quiet" id="pl-all" type="button">${esc(T.allRound.label)}</button><span class="pl-note">${esc(T.allRound.desc)}</span></div>` : ""}
-        ${T.practices ? `<p class="pl-note pl-daarna">Je oefent: ${esc(T.practices)}. Daarna helpt het bij: ${esc(T.helps)}.</p>` : ""}
+        ${T.practices ? `<p class="pl-note pl-daarna">Daarna helpt het bij: ${esc(T.helps)}.</p>` : ""}
+        <div class="pl-row pl-links">${T.allRound ? `<button class="pl-help" id="pl-all" type="button">${esc(T.allRound.label)}</button>` : ""}<button class="pl-help" id="pl-make2" type="button">Bedenk je ronde</button></div>
       </div>
-      <div class="pl-row"><button class="pl-btn quiet" id="pl-make2" type="button">Bedenk je ronde</button></div>`;
-    screen.querySelectorAll(".pl-form").forEach(b => b.addEventListener("click", () => { form = b.dataset.form; data.lastForm = form; $("pl-formnow").textContent = "Vorm: " + T.forms[form].name; screen.querySelectorAll(".pl-form").forEach(x => x.setAttribute("aria-pressed", String(x === b))); }));
-    $("pl-formtoggle").addEventListener("click", e => { const f = $("pl-forms"); f.hidden = !f.hidden; e.currentTarget.setAttribute("aria-expanded", String(!f.hidden)); });
-    $("pl-go").addEventListener("click", () => { custom = null; playRound(false); });
+      <div class="pl-actions">
+        ${op ? `<p class="pl-note pl-center">Je ronde staat nog klaar: vraag ${op.i + 1} van ${op.total}.</p>` : ""}
+        <button class="pl-btn big pl-full" id="pl-go" type="button">${op ? "Ga verder" : "Start"}</button>
+        ${op ? `<button class="pl-btn quiet pl-full" id="pl-new" type="button">Nieuwe ronde</button>` : ""}
+      </div></div>`;
+    screen.querySelectorAll(".pl-form").forEach(b => b.addEventListener("click", () => { form = b.dataset.form; data.lastForm = form; $("pl-formdesc").textContent = T.forms[form].desc; screen.querySelectorAll(".pl-form").forEach(x => x.setAttribute("aria-checked", String(x === b))); save(); }));
+    const seg = screen.querySelector(".pl-seg");
+    seg.addEventListener("keydown", e => { if (!/Arrow(Left|Right|Up|Down)/.test(e.key)) return; e.preventDefault(); const other = screen.querySelector(`.pl-form[data-form="${form === "A" ? "B" : "A"}"]`); other.click(); other.focus(); });
+    $("pl-go").addEventListener("click", () => { if (op) return playRound(false, op); custom = null; playRound(false); });
+    const nw = $("pl-new"); if (nw) nw.addEventListener("click", () => { delete data.open; custom = null; playRound(false); });
     if (T.allRound) $("pl-all").addEventListener("click", () => { custom = {all: true, form, n: 0}; log({all: 1}); playRound(false); });
-    $("pl-make2").addEventListener("click", showMake);
+    $("pl-make2").addEventListener("click", () => showMake());
   }
-
   /* --- eigen ronde: Natalia kiest de steen, de vorm en het aantal; de motor kiest de vragen --- */
   /* --- Bedenk je ronde: een gesprek in bouwstenen. Natalia stelt haar vraag zoals je hem aan een AI zou stellen;
          de motor laat zien wat hij begreep, wat hij kiest en waarom, en wat hij niet weet (aannames). Dan: klopt dit? --- */
@@ -1333,7 +1649,9 @@ PL.start = async function(T, opts){
   }
   PL._planTree = planTree;
 
-  function showMake(){
+  function showMake(fromRoute){
+    if (!fromRoute) route("bedenk");
+    app.classList.remove("pl-inround");
     const ans = {};
     screen.innerHTML = `
       <div class="pl-card" style="display:grid;gap:12px">
@@ -1341,7 +1659,7 @@ PL.start = async function(T, opts){
         <div class="pl-chat" id="pl-chat" aria-live="polite"></div>
       </div>
       <div class="pl-row"><button class="pl-btn quiet" id="pl-make-cancel" type="button">Terug</button></div>`;
-    $("pl-make-cancel").addEventListener("click", showStart);
+    $("pl-make-cancel").addEventListener("click", () => showStart());
     const chat = $("pl-chat");
     const bubble = (who, html) => { chat.insertAdjacentHTML("beforeend", `<div class="pl-bub ${who}">${html}</div>`); chat.lastElementChild.scrollIntoView({block: "nearest", behavior: "smooth"}); };
     function step(){
@@ -1417,8 +1735,15 @@ PL.start = async function(T, opts){
     return items;
   }
 
-  async function playRound(again){
+  /* een vraag bewaren en terughalen (open ronde): via fromKey als de training dat kan, anders als kopie */
+  const serItem = it => { const o = {k: it.key, st: it.stone, w: it.warm ? 1 : 0, rq: it.requeue ? 1 : 0, du: it.due ? 1 : 0}; let fk = null; try { fk = T.fromKey ? T.fromKey(it.key, ctx) : null; } catch(e){} if (!fk){ try { o.j = JSON.parse(JSON.stringify(it)); } catch(e){} } return o; };
+  const deserItem = o => { let it = null; if (o.j) it = Object.assign({}, o.j); else { try { it = T.fromKey ? T.fromKey(o.k, ctx) : null; } catch(e){} } if (!it) return null; return Object.assign(it, {key: o.k, stone: o.st, warm: !!o.w, requeue: !!o.rq, due: !!o.du}); };
+
+  async function playRound(again, resume){
     const run = ++runId; inRound = true; topBtn(true);
+    route("ronde", view === "ronde" || view === "klaar" || view === "bedenk");
+    app.classList.add("pl-inround");
+    if (resume){ form = resume.f || form; custom = resume.c || null; }
     data.lastForm = form;
     // een aanpassing uit een reden van vorige keer geldt voor deze ronde; daarna telt hij af
     roundAdj = data.adjust && data.adjust.left > 0 ? Object.assign({}, data.adjust) : null;
@@ -1426,11 +1751,12 @@ PL.start = async function(T, opts){
     const knownBefore = new Set(Object.keys(data.items).filter(k => known(k)));
     // één schermindeling voor een ronde (B1/B2): een werkvlak van hooguit ~600 px in het midden; vraag, hulp en invoer samen in beeld
     screen.innerHTML = `<div class="pl-round" id="pl-round">
+      <div class="pl-roundprog" id="pl-roundprog" hidden><span class="pl-bar" aria-hidden="true"><i id="pl-bar-i"></i></span><span class="pl-count" id="pl-count" aria-live="off"></span></div>
       <div class="pl-ask" aria-live="polite"><span class="pl-ask-lead" id="pl-ask-lead"></span><span class="pl-ask-main" id="pl-ask-main"></span></div>
       <div class="pl-rulebar" id="pl-rulebar" hidden><button type="button" class="pl-rulebtn" id="pl-rule-btn" aria-expanded="false" aria-controls="pl-rules">${esc(T.rulesLabel || "Laat de regel zien")}</button><div class="pl-rules" id="pl-rules" hidden></div></div>
-      <div class="pl-dots" id="pl-dots" aria-hidden="true"></div>
       <div class="pl-fb" id="pl-fb" aria-live="polite"></div>
-      <div id="pl-work"></div></div>`;
+      <div id="pl-work"></div>
+      <div class="pl-sheet" id="pl-sheet" aria-live="polite" hidden></div></div>`;
     ctx.work = $("pl-work");
     T.setup(ctx);
     /* "Laat de regel zien" (v0.9.2): de regel van de gevraagde vorm, nooit het antwoord. Hij is er altijd (bij elke training
@@ -1454,18 +1780,23 @@ PL.start = async function(T, opts){
     });
     const adjNote = roundAdj ? ({veel: "Ik begin met meer uit wat al lukt.", snel: "Ik doe het rustiger: de hulp blijft langer staan.", lang: "Een kortere ronde nu. Kort is ook trainen.", uitleg: `Bij een tussenstap leg ik het nu uit met ${ctx.modeName(roundAdj.mode) || "een andere manier"}.`})[roundAdj.kind] : "";
     if (again || adjNote) ctx.fb.note([again ? pick(AGAIN) : "", adjNote].filter(Boolean).join(" "));
-    const queue = composeRound();
+    const restored = resume ? resume.q.map(deserItem).filter(Boolean) : null;
+    const queue = restored && restored.length ? restored : composeRound();
+    const offset = restored && restored.length ? resume.i : 0;
     const cur = custom && !custom.all ? (T.stones.find(x => x.id === custom.stoneId) || T.stones[0]) : T.stones[data.stage - 1];
     const res = {items: [], first: 0, steps: 0, fluent: 0, stoneId: cur.id, stageAtStart: data.stage, reqN: 0, reqOk: 0, hints: 0, switches: 0, modes: {}, rts: [], reqItems: [], adj: roundAdj && roundAdj.kind};
     const total = queue.length;
-    // lange ronde (alle landen langs): een balk in plaats van stippen
+    // v0.11 (Goal-Gradient, Parkinson): de lengte van de ronde als balk met "2 van 6" (geen score: alleen waar je bent in de ronde)
     const lang = total > 12;
-    $("pl-dots").innerHTML = lang ? `<span class="pl-bar"><i id="pl-bar-i"></i></span>` : queue.map(() => `<span class="pl-dot"></span>`).join("");
-    let i = 0;
+    $("pl-roundprog").hidden = false;
+    let i = offset;
+    const keepOpen = () => { data.open = {d: new Date().toISOString(), f: form, c: custom, i, total: i + queue.length, st: cur.id, q: queue.map(serItem)}; };
     while (queue.length){
+      const n = i + queue.length;
+      $("pl-bar-i").style.width = (100 * i / n) + "%";
+      $("pl-count").textContent = `${i + 1} van ${n}`;
+      keepOpen();
       const item = queue.shift();
-      if (lang){ $("pl-bar-i").style.width = (100 * i / (i + queue.length + 1)) + "%"; }
-      else { const dots = $("pl-dots").children; for (let k = 0; k < dots.length; k++) dots[k].className = "pl-dot" + (k < i ? " done" : k === i ? " now" : ""); }
       const t0 = performance.now();
       tried = null; PL._item = item;   // alleen voor tests/ux.py (controle: noemt de tussenstap het antwoord?)
       ruleItem = item; ruleSeen = false; rulesShow(ctx.support(item.stone) === "vol" && okRun < 3, true);
@@ -1493,16 +1824,18 @@ PL.start = async function(T, opts){
       }
       if (!item.requeue){ if (r.first) res.first++; if (r.step) res.steps++; if (fluent) res.fluent++; }
       if (!custom){ wheelRun = r.first ? wheelRun + 1 : 0; wheelCount = wheelRun >= 3 ? 0 : wheelCount + 1; }
-      if (!r.first && !item.requeue && queue.length){ queue.splice(Math.min(P.requeueAfter, queue.length), 0, Object.assign({}, item, {requeue: true})); if (!lang) $("pl-dots").insertAdjacentHTML("beforeend", `<span class="pl-dot"></span>`); }
+      if (!r.first && !item.requeue && queue.length){ queue.splice(Math.min(P.requeueAfter, queue.length), 0, Object.assign({}, item, {requeue: true})); }
       i++;
+      if (queue.length) keepOpen(); else delete data.open;
+      $("pl-bar-i").style.width = (100 * i / (i + queue.length)) + "%";
       save();
       // v0.9.2: de oplossing blijft staan tot de volgende vraag: lang genoeg om "Gelukt" en het waarom te lezen
       // (1,2 s + 45 ms per teken, hooguit 7 s); "Verder" gaat meteen door. Het tempo wordt vóór deze pauze gemeten.
-      await waitNext(Math.max(T.pause || 900, Math.min(7000, 1200 + ($("pl-fb").innerText || "").length * 45)) * (ctx.pace === "rustig" ? 1.4 : 1), run);
+      await waitNext(Math.max(T.pause || 900, Math.min(7000, 1200 + (($("pl-fb").innerText || "") + ($("pl-sheet") ? $("pl-sheet").innerText : "")).length * 45)) * (ctx.pace === "rustig" ? 1.4 : 1), run);
       if (run !== runId) return;
       ctx.fb.clear();
     }
-    inRound = false; topBtn(false);
+    inRound = false; topBtn(false); delete data.open;
     res.newKnown = [...new Set(res.items.filter(x => x.first && known(x.item.key) && !knownBefore.has(x.item.key)).map(x => x.label))];
     res.dueOk = res.items.filter(x => x.item.due && x.first).map(x => x.label);
     if (T.roundEnd) try { T.roundEnd(ctx, res); } catch(e){}
@@ -1589,27 +1922,33 @@ PL.start = async function(T, opts){
     let fact = "";
     if (!factShown && T.aiFact){ factShown = true; fact = `<p class="pl-fact"><b>Weetje over AI.</b> ${esc(T.aiFact)}</p>`; }
     const R = lastRound.reacted, W = lastRound.why;
+    route("klaar", true); app.classList.remove("pl-inround");
+    // v0.11 (Peak-End): een kort feestje. Geen score: wat ze deed, wat erbij groeide, en één volgende stap.
+    const grewNow = res.newKnown && res.newKnown.length ? `Nieuw vanzelf: ${lst(res.newKnown.slice(0, 4))}${res.newKnown.length > 4 ? " en meer" : ""}. Dat groeit nu in je tuin.` : "Je tuin groeit mee met deze ronde.";
     screen.innerHTML = `
-      <div class="pl-card" style="display:grid;gap:14px">
-        <h2 class="pl-h2">Ronde klaar</h2>
+      <div class="pl-intro pl-end">
+      <div class="pl-card pl-endcard">
+        <div class="pl-endtop"><span class="pl-endflower" aria-hidden="true">${PL.flower(5, {stem: false})}</span><h2 class="pl-h2">Ronde klaar</h2></div>
         <div class="pl-cheer" id="pl-cheer" aria-live="polite">${esc(lastRound.cheer || lastRound.base)}</div>
+        <p class="pl-grow">${esc(grewNow)}</p>
+        <div class="pl-tuinwrap pl-tuin-onder" id="pl-endtuin" aria-hidden="true"></div>
         ${T.endExtra ? T.endExtra(ctx, res) : ""}
-        <p class="pl-next"><b>Volgende ronde.</b> ${esc(lastRound.next)}</p>
+        <p class="pl-note pl-nextline"><b>Volgende ronde.</b> ${esc(lastRound.next)}</p>
         ${tooLong ? `<p class="pl-note">Je traint al een kwartier. Stoppen is prima, nog een keer ook.</p>` : ""}
         <div class="pl-react" id="pl-react">
           <span class="pl-note">Hoe ging het?</span>
           <div class="pl-row" role="group" aria-label="Hoe ging het?">
-            ${["leuk", "gewoon", "pittig"].map(k => `<button class="pl-btn quiet" type="button" data-react="${k}" aria-pressed="${R === k}" ${R && R !== k ? "disabled" : ""}>${cap1(k)}</button>`).join("")}</div>
+            ${["leuk", "gewoon", "pittig"].map(k => `<button class="pl-btn quiet pl-chipbtn" type="button" data-react="${k}" aria-pressed="${R === k}" ${R && R !== k ? "disabled" : ""}>${cap1(k)}</button>`).join("")}</div>
           <div id="pl-why" aria-live="polite"></div>
         </div>
         ${fact}
+        ${custom && !custom.all ? `<button class="pl-help" id="pl-make3" type="button">Iets anders kiezen</button>` : ""}
       </div>
-      <div class="pl-row">
-        <button class="pl-btn big" id="pl-again" type="button">Nog een keer</button>
-        ${custom ? `<button class="pl-btn quiet" id="pl-make3" type="button">Iets anders kiezen</button>` : ""}
-        <button class="pl-btn quiet" id="pl-show" type="button">Laat zien</button>
-        <button class="pl-btn quiet" id="pl-stop" type="button">Stoppen voor nu</button>
-      </div>`;
+      <div class="pl-actions">
+        <button class="pl-btn big pl-full" id="pl-again" type="button">Nog een keer</button>
+        <button class="pl-btn quiet pl-full" id="pl-stop" type="button">Klaar voor vandaag</button>
+      </div></div>`;
+    allStates().then(st => { const b = $("pl-endtuin"); if (b && PL.tuin) PL.tuin(b, {states: st, strook: true}); });
     const whyBox = $("pl-why");
     function renderWhy(){
       const R = lastRound.reacted, W = lastRound.why;
@@ -1644,8 +1983,7 @@ PL.start = async function(T, opts){
     }));
     renderWhy();
     $("pl-again").addEventListener("click", () => { S.again++; data.forms[form].again++; if (lastRound.ev) lastRound.ev.again = 1; if (T.onAgain) try { T.onAgain(ctx); } catch(e){} save(); playRound(true); });
-    const mk = $("pl-make3"); if (mk) mk.addEventListener("click", showMake);
-    $("pl-show").addEventListener("click", () => showGarden(showEnd));
+    const mk = $("pl-make3"); if (mk) mk.addEventListener("click", () => showMake());
     $("pl-stop").addEventListener("click", showBye);
     $("pl-again").focus();
     if (fresh && !lastRound.cheer){
@@ -1660,45 +1998,67 @@ Antwoord alleen met de zinnen.`).then(t => { if (t){ lastRound.cheer = t; const 
   }
   /* alle trainingen laden (de tuin is van alles samen), dan inzoomen op het tuintje van deze training */
   async function allStates(){ const st = {}; for (const t of trainings) st[t.id] = t.id === T.id ? data : ((await store.load("philearn-" + t.id)) || null); return mergeGroups(st); }
-  async function showGarden(back){
+  async function showGarden(back, fromRoute){
+    if (!fromRoute) route("tuin");
+    app.classList.remove("pl-inround");
     const can = T.canDo(ctx);
+    gardenBack = back || null;
     screen.innerHTML = `
+      <div class="pl-intro">
       <div class="pl-card" style="display:grid;gap:12px">
         <h2 class="pl-h2">Mijn tuin</h2>
         <div class="pl-tuinwrap" id="pl-tuin"></div>
-    
         <div><h3 class="pl-h2" style="font-size:1.2rem">${esc(T.canTitle)}</h3>${can.length ? `<ul class="pl-cando">${can.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` : `<p class="pl-note">Dit lijstje groeit vanzelf als je traint.</p>`}</div>
       </div>
-      <div class="pl-row"><button class="pl-btn" id="pl-back" type="button">Terug</button></div>`;
+      <div class="pl-actions"><button class="pl-btn quiet pl-full" id="pl-back" type="button">Terug</button></div></div>`;
     $("pl-back").addEventListener("click", () => (back ? back(false) : showStart()));
     if (PL.tuin) PL.tuin($("pl-tuin"), {states: await allStates(), focus: T.id});
   }
-  /* --- een ronde verlaten: eerst vragen, dan de lopende ronde netjes afbreken --- */
-  function leaveGuard(go, onStay){
+  let gardenBack = null;
+  /* --- een ronde verlaten (v0.11, Zeigarnik): de ronde blijft bewaard, dus er hoeft niets bevestigd te worden.
+         Home en de terug-knop gaan meteen; op Home en hier staat daarna "Ga verder". --- */
+  function leaveGuard(go){
     if (!inRound) return go();
-    const fb = $("pl-fb"); if (!fb) return go();
-    if ($("pl-leave")) return;
-    fb.insertAdjacentHTML("beforebegin", `<div class="pl-confirm" id="pl-confirm" role="group" aria-label="Ronde stoppen?"><span>Je zit midden in een ronde.</span><button class="pl-btn" id="pl-stay" type="button">Doorgaan</button><button class="pl-btn quiet" id="pl-leave" type="button">Toch stoppen</button></div>`);
-    $("pl-stay").addEventListener("click", () => { const c = $("pl-confirm"); if (c) c.remove(); if (onStay) onStay(); });
-    $("pl-leave").addEventListener("click", () => { runId++; inRound = false; topBtn(false); log({leave: 1, st: custom && !custom.all ? custom.stoneId : T.stones[data.stage - 1].id, f: form}); if (T.teardown) T.teardown(ctx); save(); go(); });
-    $("pl-stay").focus();
+    runId++; inRound = false; topBtn(false); app.classList.remove("pl-inround");
+    log({leave: 1, st: custom && !custom.all ? custom.stoneId : T.stones[data.stage - 1].id, f: form, open: data.open ? data.open.i : undefined});
+    if (data.open && data.open.i === 0 && !(data.open.q || []).some(o => o.rq)) delete data.open;   // nog niets gedaan: dan is er niets om af te maken
+    if (T.teardown) T.teardown(ctx);
+    ctx.fb.clear();
+    save().then(go, go);   // eerst bewaren, dan pas Home laden (anders mist Home de open ronde)
   }
-  $("pl-garden-btn").addEventListener("click", () => { const wasIn = inRound; leaveGuard(() => showGarden(wasIn || !lastRound ? showStart : showEnd)); });
+  $("pl-garden-btn").addEventListener("click", () => { const wasIn = inRound; leaveGuard(() => showGarden(wasIn || !lastRound ? () => showStart() : showEnd)); });
   PL._current = T; PL._guard = leaveGuard;
-  const hb = $("pl-home-btn"); if (hb) hb.addEventListener("click", () => leaveGuard(() => { location.hash = ""; PL.home(); }));
+  const hb = $("pl-home-btn"); if (hb) hb.addEventListener("click", () => leaveGuard(() => { setRoute(""); PL.home(); }));
+  /* terug/vooruit van de browser binnen deze training */
+  PL._view = v => {
+    if (v === view) return;
+    if (v === "ronde"){ if (inRound) return; view = v; const op = openRound(data); return op ? playRound(false, op) : (lastRound ? showEnd(false) : showStart(true)); }
+    view = v;
+    leaveGuard(() => {
+      if (v === "tuin") return showGarden(gardenBack, true);
+      if (v === "bedenk") return showMake(true);
+      if (v === "klaar" && lastRound) return showEnd(false);
+      view = v === "klaar" ? "" : v; return showStart(true);
+    });
+  };
 
   function showBye(){
-    screen.innerHTML = `<div class="pl-card" style="display:grid;gap:12px"><h2 class="pl-h2">Tot de volgende keer</h2>
+    route("", true); app.classList.remove("pl-inround");
+    screen.innerHTML = `<div class="pl-intro"><div class="pl-card" style="display:grid;gap:12px"><h2 class="pl-h2">Tot de volgende keer</h2>
       <p class="pl-lead">Je tuin groeit mee met wat je vandaag deed. De volgende keer beginnen we met iets wat vandaag lukte.</p>
-      <div class="pl-tuinwrap" id="pl-tuin"></div>  </div>
-      <div class="pl-row"><button class="pl-btn quiet" id="pl-restart" type="button">Toch nog een ronde</button>${trainings.length > 1 ? `<button class="pl-btn quiet" id="pl-bye-home" type="button">Naar home</button>` : ""}</div>`;
+      <div class="pl-tuinwrap" id="pl-tuin"></div></div>
+      <div class="pl-actions">${trainings.length > 1 ? `<button class="pl-btn big pl-full" id="pl-bye-home" type="button">Naar Home</button>` : ""}<button class="pl-btn quiet pl-full" id="pl-restart" type="button">Toch nog een ronde</button></div></div>`;
     save().then(async () => { if (PL.tuin && $("pl-tuin")) PL.tuin($("pl-tuin"), {states: await allStates(), strook: true}); });
     $("pl-restart").addEventListener("click", () => playRound(true));
-    const h = $("pl-bye-home"); if (h) h.addEventListener("click", () => { location.hash = ""; PL.home(); });
+    const h = $("pl-bye-home"); if (h) h.addEventListener("click", () => { setRoute(""); PL.home(); });
   }
 
   wireParent(T, null, {data, resetSession(){ if (sessionAdded){ data.sessions = data.sessions.filter(x => x !== S); sessionAdded = false; } }, showStart, setLastRound(v){ lastRound = v; }});
-  if (opts.make) showMake(); else showStart();
+  const h0 = parseHash().view;
+  if (opts.make || h0 === "bedenk") showMake(true);
+  else if (opts.resume || h0 === "ronde"){ const op = openRound(data); if (op){ view = "ronde"; playRound(false, op); } else showStart(); }
+  else if (h0 === "tuin") showGarden(null, true);
+  else showStart(true);
 };
 
 /* ---------- ouderscherm ---------- */
@@ -1871,15 +2231,15 @@ PL.weeklyText = function(w){
     `Regels voor de lezer: alleen patronen over meerdere weken benoemen; geen niveau, groep, cijfer of leeftijd; technische problemen apart van observaties.`].join("\n");
 };
 
-/* diepe links (C8): #tafels of #europa in de adresbalk wisselt van training, ook als de pagina al open is; een lopende ronde vraagt eerst */
+/* diepe links (C8) en terug op de telefoon (v0.11): #training, #training/ronde, /tuin, /bedenk, /klaar; #tuin, #bedenk, #landen op home */
 window.addEventListener("hashchange", () => {
-  const want = (location.hash || "").slice(1);
+  if (!store) return;
+  const {id, view} = parseHash();
   const cur = PL._current ? PL._current.id : "";
-  if (want === cur || !store) return;
-  const T = trainings.find(t => t.id === want);
-  if (want && !T) return;
-  const go = () => T ? PL.start(T) : PL.home();
-  if (PL._guard) PL._guard(go, () => { try { history.replaceState(null, "", cur ? "#" + cur : location.pathname); } catch(e){} }); else go();
+  const T = trainings.find(t => t.id === id);
+  if (T && T.id === cur){ if (PL._view) PL._view(view); return; }
+  const go = () => T ? PL.start(T, {routed: true}) : PL.homeRoute(id, view);
+  if (PL._guard) PL._guard(go); else go();
 });
 window.addEventListener("DOMContentLoaded", () => { if (window.__plFace) PL.face = window.__plFace; PL.boot(); });
 })();
@@ -2606,11 +2966,7 @@ function world(){
   const gras = cls => `<svg class="tf-gras ${cls}" viewBox="0 0 120 60" preserveAspectRatio="none" aria-hidden="true">${range(0, 11).map(i => `<path d="M${i * 10 + 5} 60 C ${i * 10 + 2} 40, ${i * 10 + 12} 30, ${i * 10 + 6 + (i % 3)} ${8 + (i % 4) * 6}" stroke="#2E6B3A" stroke-width="${3 + (i % 2)}" fill="none" stroke-linecap="round"/>`).join("")}</svg>`;
   return `<div class="tf-sky"></div><div class="tf-sun"></div><div class="tf-rays"><i></i><i></i><i></i><i></i></div><div class="tf-canopy"></div>
     <div class="tf-layer far">${far}</div><div class="tf-ground"></div><div class="tf-layer path">${pathSvg()}</div><div class="tf-layer near">${near}</div>
-    <div class="tf-motes">${motes}</div>${wezen}${gras("l")}${gras("r")}
-    <div class="tf-sound" role="group" aria-label="Geluid">
-      <button type="button" class="tf-soundbtn" id="tf-natuurbtn" aria-pressed="${AU.on.natuur}">Natuur: ${AU.on.natuur ? "aan" : "uit"}</button>
-      <button type="button" class="tf-soundbtn" id="tf-handpanbtn" aria-pressed="${AU.on.handpan}">Handpan: ${AU.on.handpan ? "aan" : "uit"}</button>
-    </div>`;
+    <div class="tf-motes">${motes}</div>${wezen}${gras("l")}${gras("r")}`;
 }
 let travel = 0;
 function reis(){ travel = Math.min(travel + 1, 12); const w = document.getElementById("tf-world"); if (w) w.style.setProperty("--reis", travel); }
@@ -2707,6 +3063,10 @@ const T = {
   explainModes: MODES, explainNames: MODE_NAMES, explainPlural: {sprongen: true},
   demo: {world, rooster, jumps, chain, avatar: () => avatar()},   // voor brandguide/brandguide.html
   useFace: false,
+  // v0.11: de geluiden staan in de kop onder "Geluid" (kern); de handpan is hier het geluid bij gelukt
+  sound: {ownFeedback: true, items: [
+    {key: "natuur", label: "Natuurgeluiden", get: () => AU.on.natuur, set: on => setPref("natuur", on)},
+    {key: "handpan", label: "Muziek", get: () => AU.on.handpan, set: on => setPref("handpan", on)}]},
   teardown(){ readFn = null; typed = ""; bedStop(.6); },
   roundEnd(){ readFn = null; bedStop(1.6); sfx.close(); },
   onAgain(){ sfx.again(); },
@@ -2717,11 +3077,12 @@ const T = {
   aiFact: "Een AI kent de tafels niet 'uit haar hoofd' zoals jij straks; ze rekent ze elke keer opnieuw uit. Daarom kijkt gewone code hier elk antwoord na.",
   canTitle: "Deze tafelsommen gaan vanzelf",
   startText(ctx){ const s = STONES[ctx.stage - 1]; return ctx.data.sessions.length ? `Je tafelkaart laat zien wat al vanzelf gaat. Vandaag: ${s.name}.` : "Je gaat de tafels oefenen door ze echt te gebruiken: springen en kaarten draaien. We beginnen met de tafel van 2."; },
-  startExtra(ctx){ return `<div class="tf-kaartwrap tf-moss" id="tf-kaartwrap">${kaart(ctx)}</div><p class="pl-note tf-legend"><span><b class="tf-sw" aria-hidden="true"><span class="tf-cell "><i></i></span></b>leeg: nog nieuw</span><span><b class="tf-sw" aria-hidden="true"><span class="tf-cell kiem"><i></i></span></b>groen: geoefend</span><span><b class="tf-sw" aria-hidden="true"><span class="tf-cell bloem"><i></i></span></b>roze: gaat vanzelf</span><span><b class="tf-sw" aria-hidden="true"><span class="tf-cell bloem spiegel"><i></i></span></b>lichtroze: omgekeerd ken je hem al (3 × 7 is 7 × 3)</span><span>De rij × 1 krijg je cadeau.</span></p>`; },
+  // v0.11: de tafelkaart is een extraatje om te bekijken (dicht), met drie standen in de roze kleuren
+  startExtra(ctx){ return `<details class="pl-details tf-details"><summary>Bekijk je tafelkaart</summary><div class="tf-kaartwrap tf-roze" id="tf-kaartwrap">${kaart(ctx)}</div><p class="pl-note tf-legend"><span><b class="tf-sw" aria-hidden="true"><span class="tf-cell "><i></i></span></b>nog nieuw</span><span><b class="tf-sw" aria-hidden="true"><span class="tf-cell kiem"><i></i></span></b>geoefend</span><span><b class="tf-sw" aria-hidden="true"><span class="tf-cell bloem"><i></i></span></b>gaat vanzelf</span></p><p class="pl-note">Omgekeerd telt mee: 3 × 7 is 7 × 3. De rij × 1 krijg je cadeau.</p></details>`; },
   endExtra(ctx, res){
     const fresh = res.items.filter(x => x.first && ctx.known(x.item.key) && !T._knownAtStart.has(x.item.key)).map(x => x.item.key);
     const nieuw = [...new Set(fresh)];
-    return `<div class="tf-kaartwrap tf-moss tf-bloei" id="tf-kaartwrap">${kaart(ctx, {pop: nieuw})}${nieuw.length ? `<div class="tf-petals" aria-hidden="true">${range(1, 10).map(i => `<i style="left:${rnd(2, 96)}%;animation-delay:${(i * 0.18).toFixed(2)}s"></i>`).join("")}</div>` : ""}</div>
+    return `<div class="tf-kaartwrap tf-roze tf-bloei" id="tf-kaartwrap">${kaart(ctx, {pop: nieuw})}${nieuw.length ? `<div class="tf-petals" aria-hidden="true">${range(1, 10).map(i => `<i style="left:${rnd(2, 96)}%;animation-delay:${(i * 0.18).toFixed(2)}s"></i>`).join("")}</div>` : ""}</div>
       ${nieuw.length ? `<p class="pl-note">Nieuw op je tafelkaart: ${nieuw.map(k => fromKey(k).label).join(", ")}.</p>` : ""}
       <p class="pl-note">${(() => { const S = ctx.data.sessions[ctx.data.sessions.length - 1] || {}; const n = S.items || res.items.length; return `Je bent vandaag ${n} ${n === 1 ? "steen" : "stenen"} over het pad gesprongen.`; })()}</p>`;
   },
@@ -2748,8 +3109,6 @@ const T = {
     const ask = document.querySelector(".pl-ask"); if (ask) ask.hidden = true;
     ctx.work.querySelectorAll("[data-k]").forEach(b => b.addEventListener("click", () => press(b.dataset.k)));
     document.getElementById("tf-show").addEventListener("click", async () => { if (T._model){ T._model(); T._asked = true; await sleep(ctx.flashMs); T._hide(); } });
-    document.getElementById("tf-natuurbtn").addEventListener("click", () => setPref("natuur", !AU.on.natuur));
-    document.getElementById("tf-handpanbtn").addEventListener("click", () => setPref("handpan", !AU.on.handpan));
     // setup draait binnen de klik op Start of Nog een keer: dan mag geluid beginnen
     bedStart(); sfx.open();
   },
@@ -2978,7 +3337,7 @@ const T = {
     const sayB = document.getElementById("sp-say"); if (sayB) sayB.onclick = () => ctx.say(`één ${w.ev}, twee ${w.mv}`);
     let revealed = false;
     if (ctx.form === "B"){
-      box.innerHTML = `<label class="pl-note" for="sp-in">Typ het meervoud</label><input id="sp-in" class="sp-in" autocomplete="off" autocapitalize="off" spellcheck="false"><button type="button" class="pl-btn" id="sp-ok">Klaar</button>`;
+      box.innerHTML = `<label class="pl-note" for="sp-in">Typ het meervoud</label><input id="sp-in" class="sp-in" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done"><button type="button" class="pl-btn" id="sp-ok">Klaar</button>`;
       const inp = document.getElementById("sp-in"); inp.focus();
       let t0 = 0; inp.addEventListener("input", () => { if (!t0) t0 = performance.now(); }, {once: true});
       const get = () => new Promise(res => { const go = () => { const v = inp.value.trim().toLowerCase(); if (v) res(v); }; document.getElementById("sp-ok").onclick = go; inp.onkeydown = e => { if (e.key === "Enter") go(); }; });
@@ -3172,7 +3531,7 @@ const T = {
   startText(ctx){ return ctx.data.sessions.length ? `We beginnen met wat al lukt. Daarna: ${STONES[ctx.stage - 1].name}.` : "Elke werkwoordsvorm begint bij de stam. Daar beginnen we."; },
   setup(ctx){
     ctx.work.innerHTML = `<div class="pl-card ww-board"><p class="ww-zin" id="ww-zin"></p><div class="ww-steps" id="ww-trail"></div>
-      <div class="pl-row"><input id="ww-in" class="sp-in" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Typ het woord"><button type="button" class="pl-btn" id="ww-ok">Klaar</button></div><div class="sp-step" id="ww-step"></div></div>`;
+      <div class="pl-row"><input id="ww-in" class="sp-in" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="Typ het woord"><button type="button" class="pl-btn" id="ww-ok">Klaar</button></div><div class="sp-step" id="ww-step"></div></div>`;
     const inp = document.getElementById("ww-in"); const go = () => { const v = inp.value.trim(); if (v && readFn){ const f = readFn; readFn = null; inp.disabled = true; f(v); } };
     document.getElementById("ww-ok").addEventListener("click", go); inp.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
     inp.addEventListener("input", () => { if (!t0) t0 = performance.now(); });
