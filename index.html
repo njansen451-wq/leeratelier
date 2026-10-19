@@ -479,6 +479,9 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 .pl-toets{font-family:var(--pl-display);font-size:1.05rem}
 @media (max-width:380px){.pl-feelbtn{padding:6px 9px;font-size:.85rem}}
 
+/* v0.13.1: alleen voor schermlezers */
+.pl-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
 /* De tuin v0.8: lagen (lucht, heuvels, wei, tuintjes, gras), licht volgens de klok, beweging die meegroeit (gd-t0 … gd-t3).
    Alleen transform, opacity en filter; bij "minder beweging" staat alles stil (core.css). Geen tekst. */
 .gd{opacity:0;transition:opacity .8s}
@@ -930,7 +933,7 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 </style>
 </head>
 <body>
-<!-- Leeratelier Leeratelier v0.13. Gebouwd op de Leeratelier-kern v0.13. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
+<!-- Leeratelier Leeratelier v0.13.1. Gebouwd op de Leeratelier-kern v0.13.1. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
 <main class="pl-app" id="pl-app"></main>
 
 
@@ -951,7 +954,7 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 (function(){
 "use strict";
 const PL = window.PL = {};
-PL.VERSION = "v0.13";
+PL.VERSION = "v0.13.1";
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -1721,7 +1724,11 @@ PL.start = async function(T, opts){
     /* feedback: drie vaste vormen. Tijdens een tussenstap blijft haar eigen antwoord in beeld (C3): fb.tried(waarde). */
     fb: {
       // v0.11: "Gelukt" komt in een vaste strook onderin (geen verspringende inhoud), met een zacht toontje
-      ok(text){ tried = null; $("pl-fb").innerHTML = ""; const sh = $("pl-sheet"); if (!sh) return; const extra = okVoice(); sh.innerHTML = `<div class="pl-ok" role="status"><p class="pl-ok-text"><b>Gelukt</b>${esc(text)}</p>${extra ? `<p class="pl-ok-stem">${esc(extra)}</p>` : ""}</div>`; sh.hidden = false; requestAnimationFrame(() => sh.classList.add("open")); if (!(T.sound && T.sound.ownFeedback)) PL.chime(); },
+      ok(text){ tried = null; $("pl-fb").innerHTML = "";
+        // v0.13.1: een training met eigen "goed"-beeld (Tafelreis: de kaart draait, de figuur springt) kan de strook overslaan;
+        // dan meteen door naar de volgende vraag. Voor schermlezers staat "Gelukt" wel in een onzichtbare regel.
+        if (T.okQuiet){ const sr = $("pl-sr"); if (sr) sr.textContent = "Gelukt. " + text; return; }
+        const sh = $("pl-sheet"); if (!sh) return; const extra = okVoice(); sh.innerHTML = `<div class="pl-ok" role="status"><p class="pl-ok-text"><b>Gelukt</b>${esc(text)}</p>${extra ? `<p class="pl-ok-stem">${esc(extra)}</p>` : ""}</div>`; sh.hidden = false; requestAnimationFrame(() => sh.classList.add("open")); if (!(T.sound && T.sound.ownFeedback)) PL.chime(); },
       step(text){ rulesShow(true); cur_.step = true; ctx.fb.clearSheet(); $("pl-fb").innerHTML = `<div class="pl-step">${tried != null ? `<span class="pl-tried">Jouw antwoord: ${esc(tried)}</span>` : ""}<b>Tussenstap</b>${esc(text)}</div>`; },
       tried(v){ tried = v; },
       clearSheet(){ const sh = $("pl-sheet"); if (sh && !sh.hidden){ sh.classList.remove("open"); sh.hidden = true; sh.innerHTML = ""; } },
@@ -2015,7 +2022,7 @@ PL.start = async function(T, opts){
       <div class="pl-rulebar" id="pl-rulebar" hidden><button type="button" class="pl-rulebtn" id="pl-rule-btn" aria-expanded="false" aria-controls="pl-rules">${esc(T.rulesLabel || "Laat de regel zien")}</button><div class="pl-rules" id="pl-rules" hidden></div></div>
       <div class="pl-fb" id="pl-fb" aria-live="polite"></div>
       <div id="pl-work"></div>
-      <div class="pl-sheet" id="pl-sheet" aria-live="polite" hidden></div></div>`;
+      <div class="pl-sheet" id="pl-sheet" aria-live="polite" hidden></div><div class="pl-sr" id="pl-sr" aria-live="polite"></div></div>`;
     ctx.work = $("pl-work");
     wireFeel();
     T.setup(ctx);
@@ -2117,7 +2124,8 @@ PL.start = async function(T, opts){
       save();
       // v0.9.2: de oplossing blijft staan tot de volgende vraag: lang genoeg om "Gelukt" en het waarom te lezen
       // (1,2 s + 45 ms per teken, hooguit 7 s); "Verder" gaat meteen door. Het tempo wordt vóór deze pauze gemeten.
-      await waitNext(Math.max(T.pause || 900, Math.min(7000, 1200 + (($("pl-fb").innerText || "") + ($("pl-sheet") ? $("pl-sheet").innerText : "")).length * 45)) * (ctx.pace === "rustig" ? 1.4 : 1), run);
+      if (T.okQuiet && r.first !== undefined && !($("pl-sheet") && $("pl-sheet").querySelector(".pl-ok"))) await sleep(T.okPause || 250);   // snel door (Tafelreis)
+      else await waitNext(Math.max(T.pause || 900, Math.min(7000, 1200 + (($("pl-fb").innerText || "") + ($("pl-sheet") ? $("pl-sheet").innerText : "")).length * 45)) * (ctx.pace === "rustig" ? 1.4 : 1), run);
       if (run !== runId) return;
       ctx.fb.clear();
     }
@@ -4055,7 +4063,7 @@ async function strategie(ctx, it){
 }
 
 const T = {
-  id: "tafels", title: "Tafelreis", version: "v0.7", noun: "sommen", subject: "Rekenen · tafels", glyph: "×", tint: "#F4DDE3",
+  id: "tafels", title: "Tafelreis", version: "v0.7.1", noun: "sommen", subject: "Rekenen · tafels", glyph: "×", tint: "#F4DDE3",
   practices: "de tafels van 2 tot en met 10 uit je hoofd",
   helps: "delen, breuken, procenten, verhoudingen en rekenen met grote getallen",
   stones: STONES, stoneOf, fromKey,
@@ -4088,7 +4096,8 @@ const T = {
   keyLabel: k => fact(fromKey(k)),
   canDo(ctx){ return Object.keys(ctx.data.items).filter(k => ctx.known(k)).map(k => fact(fromKey(k))).slice(0, 60); },
 
-  pause: 650,     // kortere adempauze na feedback dan de kern (900 ms): het spel blijft in beweging
+  pause: 650,
+  okQuiet: true, okPause: 250,   // v0.13.1: geen strook "Gelukt" en geen Verder; de kaart draait en de figuur springt, dan meteen de volgende som     // kortere adempauze na feedback dan de kern (900 ms): het spel blijft in beweging
   setup(ctx){
     T._knownAtStart = new Set(Object.keys(ctx.data.items).filter(k => ctx.known(k)));
     travel = 0;
