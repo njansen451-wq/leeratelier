@@ -655,6 +655,9 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 .rk-cell.l{background:var(--pl-lilac);border-color:var(--pl-lilac)}
 .rk-cell.x{background:transparent;border:2px solid var(--pl-lilac)}
 
+/* v0.6.1: goed = het antwoord kleurt groen (de vorm van "Gelukt"), daarna meteen de volgende som */
+.rk-slot.rk-goed{color:#1F6B45;border-bottom-color:var(--pl-leaf);background:var(--pl-leaf-soft);border-radius:8px 8px 0 0;transition:background .15s}
+
 /* Tafelreis v0.6: het lichtpad. Een pad van stapstenen loopt door het bos naar een open plek met warm zonlicht.
    Licht van boven en in het midden; donkerder aan de randen (daar staan de bomen). Drie lagen diepte: verre bomen, het pad,
    bomen dichtbij; gras op de voorgrond, iets onscherp. Elke goede sprong brengt je dichterbij (--reis: de lagen schalen vanuit
@@ -933,7 +936,7 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 </style>
 </head>
 <body>
-<!-- Leeratelier Leeratelier v0.13.1. Gebouwd op de Leeratelier-kern v0.13.1. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
+<!-- Leeratelier Leeratelier v0.13.2. Gebouwd op de Leeratelier-kern v0.13.2. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
 <main class="pl-app" id="pl-app"></main>
 
 
@@ -954,7 +957,7 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 (function(){
 "use strict";
 const PL = window.PL = {};
-PL.VERSION = "v0.13.1";
+PL.VERSION = "v0.13.2";
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -3706,7 +3709,8 @@ const HOE = {
   v: it => { const [a, b, c] = kies2(it, [3, 4, 2], [5, 2, 3], (x, v) => x.v && x.v[0] === v[0] && x.v[1] === v[1] && x.v[2] === v[2]); return {title: "Bewerkingsvolgorde", lines: [`Je koopt 1 schrift van ${a} euro en ${b} pennen van ${c} euro: ${a} + ${b} × ${c}.`, "Eerst wat tussen haakjes staat.", "Dan keer en gedeeld door.", "Dan plus en min, van links naar rechts.", `${a} + ${b} × ${c} = ${a} + ${b * c} = ${a + b * c}, niet ${(a + b) * c}.`], html: `<div class="rk-vb-volgorde"><span>${a} + <u>${b} × ${c}</u></span><span>${a} + ${b * c}</span><span><b>${a + b * c}</b></span></div>`}; }
 };
 const T = {
-  id: "rekenmuur", title: "De rekenmuur", version: "v0.6", noun: "sommen", subject: "Rekenen", glyph: "10", tint: "#F4DDE3",
+  id: "rekenmuur", title: "De rekenmuur", version: "v0.6.1",
+  okQuiet: true, okPause: 450,   // v0.6.1: geen strook "Gelukt" en geen Verder; het antwoord kleurt groen en de volgende som komt noun: "sommen", subject: "Rekenen", glyph: "10", tint: "#F4DDE3",
   practices: "rekenen uit je hoofd, van splitsen tot 10 tot procenten en breuken",
   helps: "rekenen met geld, tijd en grote getallen, en verhoudingen",
   stones: STONES, stoneOf, fromKey: k => fromKey(k),
@@ -3768,6 +3772,7 @@ const T = {
       trail([it.label, "en nu in één keer"]);
       while (norm(await read(it.eq)) !== norm(it.ans)) ctx.fb.step(`Je kwam net uit op ${it.ans}. Typ dat maar.`);
     }
+    { const s = document.getElementById("rk-slot"); if (s) s.classList.add("rk-goed"); }   // v0.6.1: het antwoord kleurt groen; dat is het "goed"
     ctx.fb.ok(fact(it)); trail([]); hideModel();
     return {first, step: !first, typingMs, support: sup + (T._asked ? "+knop" : "")};
   }
