@@ -936,7 +936,7 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 </style>
 </head>
 <body>
-<!-- Leeratelier Leeratelier v0.13.2. Gebouwd op de Leeratelier-kern v0.13.2. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
+<!-- Leeratelier Leeratelier v0.14. Gebouwd op de Leeratelier-kern v0.14. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
 <main class="pl-app" id="pl-app"></main>
 
 
@@ -957,7 +957,7 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 (function(){
 "use strict";
 const PL = window.PL = {};
-PL.VERSION = "v0.13.2";
+PL.VERSION = "v0.14";
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -1694,6 +1694,16 @@ PL.start = async function(T, opts){
   }
   const known = key => { const r = data.items[key]; return !!r && r.fl >= 2 && r.last === "ok"; };
   const due = key => { const r = data.items[key]; return !!r && r.due != null && r.due <= dayNum(today()); };
+  /* v0.14 variatie binnen een sessie (ouder, 23 oktober): wat vandaag al gevraagd is en meteen lukte, komt vandaag niet meer
+     terug zolang er iets anders is; alleen wat een tussenstap nodig had, komt terug. Bewaard per dag (ook na herladen). */
+  const sessObj = () => (data.sess && data.sess.d === today() && data.sess.items) ? data.sess : (data.sess = {d: today(), items: {}});
+  const sessRec = key => sessObj().items[key];
+  // een vraag die in dezelfde ronde terugkwam (na een tussenstap) blijft "met tussenstap": hij komt de volgende ronde nog één keer
+  const sessMark = (key, first, requeue) => { const it = sessObj().items; const r = it[key] || (it[key] = {n: 0, miss: false}); r.n++; if (!requeue || !first) r.miss = !first; };
+  const sessFresh = key => { const r = sessRec(key); return !r || r.miss; };
+  /* voor de keuze van een training (choose): nog niet gevraagd = 0; met een tussenstap = naar voren; meteen goed = helemaal achteraan
+     (en "klaar om te herhalen" telt dan niet meer: die is vandaag al gecontroleerd) */
+  const sessScore = key => { const r = sessRec(key); if (!r) return 0; if (r.miss) return -12; return 40 + 3 * r.n + (due(key) ? 20 : 0); };
 
   const ctx = {
     T, data, P, sleep, shuffle, pick, rnd, esc, say: PL.say, canSay: PL.canSay, log,
@@ -1715,7 +1725,7 @@ PL.start = async function(T, opts){
       log({switch: 1, st: stoneId, from, to: next}); return next;
     },
     modeName: m => (T.explainNames && T.explainNames[m]) || "",
-    rec, known, due, stone, green,
+    rec, known, due, stone, green, sessScore, sessFresh,
     // steunniveau van het model: vol (geen beheersing), flits (beheersing, nog geen tempo), opvraag (tempo)
     support(id){
       // v0.13: een "Te makkelijk" of "Pittig" van vorige ronde zet de hulp bij die steen voor deze ronde (de toets)
@@ -1972,9 +1982,9 @@ PL.start = async function(T, opts){
       const st = stones.find(x => x.id === custom.stoneId) || stones[0];
       const items = []; let guard = 0;
       const warmSrc = custom.warmId ? stones.find(x => x.id === custom.warmId) : null;
-      if (warmSrc && warmSrc !== st && custom.n >= 6) while (items.length < P.warm && guard++ < 40){ const it = warmSrc.gen(ctx, "warm"); if (it && !items.some(x => x.key === it.key)) items.push(Object.assign(it, {warm: true, stone: warmSrc.id})); }
+      if (warmSrc && warmSrc !== st && custom.n >= 6) while (items.length < P.warm && guard++ < 40){ const it = warmSrc.gen(ctx, "warm"); if (it && !items.some(x => x.key === it.key) && (sessFresh(it.key) || guard > 25)) items.push(Object.assign(it, {warm: true, stone: warmSrc.id})); }
       guard = 0;
-      while (items.length < custom.n && guard++ < 120){ const it = st.gen(ctx, "main"); if (it && !items.some(x => x.key === it.key)) items.push(Object.assign(it, {stone: st.id})); }
+      while (items.length < custom.n && guard++ < 120){ const it = st.gen(ctx, "main"); if (it && !items.some(x => x.key === it.key) && (sessFresh(it.key) || guard > 80)) items.push(Object.assign(it, {stone: st.id})); }
       return items;
     }
     if (data.hold > 0) data.hold--;                                                            // na een stapje terug: eerst oefenen, nog niet overslaan
@@ -1986,18 +1996,30 @@ PL.start = async function(T, opts){
     const kind = roundAdj && roundAdj.kind;
     const warmN = kind === "veel" ? P.warm + 1 : kind === "lang" ? 1 : P.warm;
     const size = kind === "lang" ? 4 : P.roundSize;
-    const dueKeys = Object.keys(data.items).filter(k => due(k) && data.items[k].last === "ok");
+    const dueKeys = Object.keys(data.items).filter(k => due(k) && data.items[k].last === "ok" && !sessRec(k));   // v0.14: één keer per sessie
     for (const k of shuffle(dueKeys).slice(0, warmN)){ const it = T.fromKey(k, ctx); if (it) items.push(Object.assign(it, {warm: true, due: true, stone: T.stoneOf(k, ctx)})); }
     let guard = 0;
     while (items.length < warmN && guard++ < 30){
       const src = earlier.length ? pick(earlier) : cur;
       const it = src.gen(ctx, "warm"); if (!it) break;
-      if (!items.some(x => x.key === it.key)) items.push(Object.assign(it, {warm: true, stone: src.id}));
+      if (!items.some(x => x.key === it.key) && (sessFresh(it.key) || guard > 20)) items.push(Object.assign(it, {warm: true, stone: src.id}));
+    }
+    // v0.14: de toets van "Te makkelijk" / "Pittig" vraagt om sommen van die stap; staat de ronde al verder, dan komen er twee bij
+    if (data.feel && data.feel.st !== cur.id){ const fs = stones.find(s => s.id === data.feel.st); let g2 = 0;
+      while (fs && items.filter(x => x.stone === fs.id && !x.warm).length < 2 && g2++ < 30){ const it = fs.gen(ctx, "main"); if (it && !items.some(x => x.key === it.key)) items.push(Object.assign(it, {stone: fs.id})); } }
+    // v0.14: wat vandaag een tussenstap nodig had, komt de volgende ronde terug (ook bij trainingen die vragen willekeurig maken)
+    const okStones = new Set(stones.slice(0, data.stage).map(s => s.id));
+    for (const [k, r] of Object.entries(sessObj().items)){
+      if (items.length >= size - 2) break;
+      if (!r.miss || items.some(x => x.key === k)) continue;
+      let it = null; try { it = T.fromKey(k, ctx); } catch(e){}
+      const st = it && T.stoneOf(k, ctx); if (!it || !okStones.has(st)) continue;
+      items.push(Object.assign(it, {stone: st, terug: true}));
     }
     guard = 0;
     while (items.length < size && guard++ < 60){
       const it = cur.gen(ctx, "main");
-      if (it && !items.some(x => x.key === it.key)) items.push(Object.assign(it, {stone: cur.id}));
+      if (it && !items.some(x => x.key === it.key) && (sessFresh(it.key) || guard > 40)) items.push(Object.assign(it, {stone: cur.id}));
     }
     return items;
   }
@@ -2097,6 +2119,7 @@ PL.start = async function(T, opts){
       if (run !== runId) return;   // de ronde is verlaten
       const rt = Math.max(0, Math.round(performance.now() - t0 - (r.typingMs || 0)));
       const fluent = updateItem(item.key, r.first, r.step, r.first ? rt : null);
+      sessMark(item.key, r.first, !!item.requeue);
       updateStone(item.stone, r.first, r.first ? rt : null);
       log({k: item.key, st: item.stone, f: form, ok1: r.first ? 1 : 0, step: r.step ? 1 : 0, rt, warm: item.warm ? 1 : 0, sup: r.support || "", ex: r.step ? (r.expl || "standaard") : undefined, sw: r.switches || undefined, rev: r.revealed ? 1 : undefined, cor: PL._cor || undefined});
       if (cur_.doubt && r.first) res.doubt = res.doubt || item;
@@ -2768,7 +2791,7 @@ const F = {
   "{DagT} {v:ligt|liggen} {items} weer klaar.",
   "{Items} {v:komt|komen} {dagT} nog een keer langs.",
   "{DagT}: {items}.",
-  "Even wachten, dan {v:komt|komen} {items} terug: {dagT}.",
+  "ev: Even wachten, dan komt {items} terug: {dagT}.",
   "{Items} {v:rust|rusten} tot {dagT}."]},
 "kaart.rust": {staat: "herhaling", toon: "rustig", r: "S14 S18", v: [
   "{Aantal} laat ik rusten tot {dagT}. Rust helpt bij onthouden.",
@@ -3468,7 +3491,7 @@ function stoneOf(k){ const it = fromKey(k); if (it.type === "x") return it.a >= 
 /* ---------- generatoren: kiezen bij voorkeur wat nog niet vlot is ---------- */
 function choose(ctx, cands){
   // laagste score eerst: onbekend of met tussenstap vóór bekend; wat aan herhaling toe is, altijd eerst
-  const score = it => { const r = ctx.rec(it.key); return (ctx.due(it.key) ? -20 : 0) + (ctx.known(it.key) ? 10 : 0) + (r.st > 0 && r.last === "step" ? -5 : 0) + Math.random() * 6; };
+  const score = it => { const r = ctx.rec(it.key); return (ctx.due(it.key) ? -20 : 0) + (ctx.known(it.key) ? 10 : 0) + (r.st > 0 && r.last === "step" ? -5 : 0) + (ctx.sessScore ? ctx.sessScore(it.key) : 0) + Math.random() * 6; };
   return cands.map(it => [score(it), it]).sort((a, b) => a[0] - b[0])[0][1];
 }
 const STONES = [
@@ -3710,7 +3733,8 @@ const HOE = {
 };
 const T = {
   id: "rekenmuur", title: "De rekenmuur", version: "v0.6.1",
-  okQuiet: true, okPause: 450,   // v0.6.1: geen strook "Gelukt" en geen Verder; het antwoord kleurt groen en de volgende som komt noun: "sommen", subject: "Rekenen", glyph: "10", tint: "#F4DDE3",
+  noun: "sommen", subject: "Rekenen", glyph: "10", tint: "#F4DDE3",
+  okQuiet: true, okPause: 450,   // v0.6.1: geen strook "Gelukt" en geen Verder; het antwoord kleurt groen en de volgende som komt
   practices: "rekenen uit je hoofd, van splitsen tot 10 tot procenten en breuken",
   helps: "rekenen met geld, tijd en grote getallen, en verhoudingen",
   stones: STONES, stoneOf, fromKey: k => fromKey(k),
@@ -3802,7 +3826,7 @@ const fromKey = k => { const [, t, n] = k.split(":"); return mk(+t, +n); };
 const fact = it => `${it.t} × ${it.n} = ${it.ans}`;
 const stoneOf = k => "T" + k.split(":")[1];
 function choose(ctx, cands){
-  const score = it => { const r = ctx.rec(it.key); return (ctx.due(it.key) ? -20 : 0) + (ctx.known(it.key) ? 10 : 0) + (r.st > 0 && r.last === "step" ? -5 : 0) + Math.random() * 6; };
+  const score = it => { const r = ctx.rec(it.key); return (ctx.due(it.key) ? -20 : 0) + (ctx.known(it.key) ? 10 : 0) + (r.st > 0 && r.last === "step" ? -5 : 0) + (ctx.sessScore ? ctx.sessScore(it.key) : 0) + Math.random() * 6; };
   return cands.map(it => [score(it), it]).sort((a, b) => a[0] - b[0])[0][1];
 }
 const range = (a, b) => Array.from({length: Math.max(0, b - a + 1)}, (_, i) => a + i);
@@ -4253,7 +4277,7 @@ function checkPack(obj){ const bad = []; let ok = 0; for (const it of obj.items)
 const byKind = k => Object.values(BANK).filter(w => k === "mix" ? (w.k === "lang" || w.k === "kort" || w.k === "vast") : k === "uitz" ? (w.k === "uitz" || w.k === "sz" || w.k === "s") : w.k === k);
 
 function choose(ctx, cands){
-  const score = w => { const r = ctx.rec("w:" + w.ev); return (ctx.due("w:" + w.ev) ? -20 : 0) + (ctx.known("w:" + w.ev) ? 10 : 0) + (r.st > 0 && r.last === "step" ? -5 : 0) + (r.n === 0 ? -2 : 0) + Math.random() * 6; };
+  const score = w => { const r = ctx.rec("w:" + w.ev); return (ctx.due("w:" + w.ev) ? -20 : 0) + (ctx.known("w:" + w.ev) ? 10 : 0) + (r.st > 0 && r.last === "step" ? -5 : 0) + (r.n === 0 ? -2 : 0) + (ctx.sessScore ? ctx.sessScore("w:" + w.ev) : 0) + Math.random() * 6; };
   const w = cands.map(w => [score(w), w]).sort((a, b) => a[0] - b[0])[0][1];
   return {key: "w:" + w.ev, w, label: w.mv};
 }
@@ -4578,7 +4602,7 @@ const T = {
         await kies(ctx, `${grp === "1" ? "Ik" : grp === "p" ? "Meer dan één" : "Eén persoon of ding"}. Welke vorm past daarbij?`, [["st", "Alleen de stam"], ["stt", "Stam + t"], ["inf", "Het hele werkwoord"]], want,
           `Bij ik: alleen de stam. Bij één ander (jij, hij, de juf): stam + t. Bij meer dan één: het hele werkwoord.`);
         if (want !== "inf") await stapStam(ctx, it.v, R);
-        ctx.fb.step(want === "st" ? "Nu het woord: alleen de stam." : want === "stt" ? "Nu het woord: de stam, en dan een t erachter (staat er al een t, dan blijft het één)." : "Nu het woord: het hele werkwoord.");
+        ctx.fb.step(want === "st" ? "Nu het woord: alleen de stam." : want === "stt" ? "Nu het woord: de stam, en dan een t erachter (eindigt de stam al op een t, dan geen tweede t)." : "Nu het woord: het hele werkwoord.");
       }
       else if (it.v.meng && it.kind === "vd"){
         await kies(ctx, `${cap(it.v.inf)}: in de verleden tijd is het ${it.v.vt1}. Hoe eindigt het voltooid deelwoord?`, [["en", "Op -en"], ["td", "Op -t of -d"]], "en", `${cap(it.v.inf)} is gemengd: de verleden tijd gaat gewoon, het voltooid deelwoord eindigt op -en.`);
@@ -5299,7 +5323,7 @@ function makeRegion(RG){
   }
 
   function choose(ctx, ids){
-    const score = id => { const r = ctx.rec("c:" + id); return (ctx.due("c:" + id) ? -20 : 0) + (ctx.known("c:" + id) ? 10 : 0) + (r.st > 0 && r.last === "step" ? -5 : 0) + (r.n === 0 ? -2 : 0) + Math.random() * 6; };
+    const score = id => { const r = ctx.rec("c:" + id); return (ctx.due("c:" + id) ? -20 : 0) + (ctx.known("c:" + id) ? 10 : 0) + (r.st > 0 && r.last === "step" ? -5 : 0) + (r.n === 0 ? -2 : 0) + (ctx.sessScore ? ctx.sessScore("c:" + id) : 0) + Math.random() * 6; };
     const id = ids.map(id => [score(id), id]).sort((a, b) => a[0] - b[0])[0][1];
     return {key: "c:" + id, id, label: nl(id)};
   }
