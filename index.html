@@ -352,7 +352,7 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 .pl-region .pl-note{margin:0}
 
 /* Home op een groot scherm (Proximity, Common Region): links begroeting, Vandaag en Mijn tuin; rechts de vakken in twee kolommen */
-.pl-home{display:grid;gap:14px;grid-template-areas:"hero" "today" "list" "tuin"}
+.pl-home{display:grid;gap:14px;grid-template-areas:"hero" "today" "tuin" "list"}
 .pl-home > .pl-hero{grid-area:hero}.pl-area-today{grid-area:today}.pl-area-list{grid-area:list}.pl-area-tuin{grid-area:tuin}
 @media (min-width:1024px){
   .pl-app.pl-homeapp{max-width:1200px;padding-inline:32px}
@@ -481,6 +481,14 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 
 /* v0.13.1: alleen voor schermlezers */
 .pl-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* v0.16 Laws of UX */
+.pl-atstart .pl-top-tr .pl-title{display:none}                       /* het startscherm heeft de naam als kop in de kaart */
+.pl-feel-ronde{position:relative;justify-content:center;margin-top:2px}  /* Te makkelijk / Pittig onder de opgave, weg van Home (Fitts) */
+.pl-feel-ronde .pl-feelpanel{top:auto;bottom:calc(100% + 6px);right:auto;left:50%;transform:translateX(-50%)}
+.pl-feel-ronde .pl-feelbtn{border-color:transparent;background:transparent;text-decoration:underline;text-underline-offset:3px}
+.pl-more{border-top:1px solid var(--pl-line);padding-top:4px}
+.pl-more > :not(summary){margin-top:8px}
+.pl-status.s-klaar{color:var(--pl-violet-deep);font-weight:500}
 
 /* De tuin v0.8: lagen (lucht, heuvels, wei, tuintjes, gras), licht volgens de klok, beweging die meegroeit (gd-t0 … gd-t3).
    Alleen transform, opacity en filter; bij "minder beweging" staat alles stil (core.css). Geen tekst. */
@@ -876,7 +884,9 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 .tf-play{padding-bottom:16px}
 @media (max-width:560px){.tf-play{padding-bottom:14px}.tf-world,.tf-world .tf-play{min-height:min(70vh,560px)}}
 /* v0.13: de rij met Te makkelijk / Pittig staat boven het spel; het bos wordt op de telefoon iets lager (geen scrollen op 375×667) */
-@media (max-width:560px){.tf-world,.tf-world .tf-play{min-height:min(66vh,540px)}}
+@media (max-width:560px){.tf-world,.tf-world .tf-play{min-height:min(61vh,520px)}}
+/* v0.16: Te makkelijk / Pittig staat onder het bos; op een kleine telefoon iets dichter op elkaar (geen scrollen op 375×667) */
+@media (max-width:560px) and (max-height:760px){.tf-play{gap:6px;padding-top:10px;padding-bottom:6px}}
 
 .sp-board{display:grid;gap:14px}
 .sp-frame{font-family:var(--pl-display);font-weight:600;font-size:clamp(1.8rem,6vw,2.6rem);margin:0;line-height:1.15}
@@ -889,7 +899,8 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 .sp-grepen{display:flex;align-items:center;gap:10px;font-family:var(--pl-display);font-weight:600;font-size:2rem}
 .sp-grepen span:not(.sp-bar){background:var(--pl-violet-soft);border-radius:12px;padding:4px 14px}
 .sp-bar{width:3px;height:1.4em;background:var(--pl-honey);border-radius:2px}
-.sp-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.sp-head{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.sp-saybtn{min-height:44px;padding:8px 18px;font-size:1rem}
 
 
 
@@ -936,7 +947,7 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 </style>
 </head>
 <body>
-<!-- Leeratelier Leeratelier v0.15. Gebouwd op de Leeratelier-kern v0.15. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
+<!-- Leeratelier Leeratelier v0.16. Gebouwd op de Leeratelier-kern v0.16. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
 <main class="pl-app" id="pl-app"></main>
 
 
@@ -957,7 +968,7 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 (function(){
 "use strict";
 const PL = window.PL = {};
-PL.VERSION = "v0.15";
+PL.VERSION = "v0.16";
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -1368,10 +1379,14 @@ function rowHTML(R, states, todayId, make){
   const isToday = !make && (isG ? R.members.some(m => m.id === todayId) : R.id === todayId);
   const attr = isG ? `data-group="${esc(R.id)}"` : make ? `data-make="${esc(R.id)}"` : `data-start="${esc(R.id)}"`;
   // a11y: de knop krijgt één duidelijke naam (titel, vak, status, voortgang)
-  const label = `${R.title}. ${sub}. ${isToday ? "Vandaag. " : ""}${pr.status}.${pr.known ? " " + pr.text : ""}`;
+  // v0.16 (Von Restorff): alleen wat anders is valt op: Nieuw, of iets wat klaarstaat om te herhalen. Vandaag gedaan zegt niets extra's.
+  let due = false; try { due = !make && !isG && !!states[R.id] && PL.stem.sig.dueToday(states[R.id]).length > 0; } catch(e){}
+  const trainedToday = pr.sessions && pr.last === today();
+  const stat = !pr.sessions ? {t: "Nieuw", c: " s-nieuw"} : due ? {t: "Er staat iets klaar", c: " s-klaar"} : trainedToday ? {t: pr.known ? pr.text : "", c: ""} : {t: pr.status, c: ""};
+  const label = `${R.title}. ${sub}. ${isToday ? "Vandaag. " : ""}${stat.t ? stat.t + "." : ""}`;
   return `<button type="button" class="pl-listrow pl-card-row" ${attr} aria-label="${esc(label)}">${catIcon(R.cat || catOf(R))}
-    <span class="pl-listtext"><span class="pl-rowtop"><b>${esc(R.title)}</b>${isToday ? `<span class="pl-tag">Vandaag</span>` : ""}</span><span class="pl-sub">${esc(sub)}</span>
-    ${make ? "" : `<span class="pl-status${pr.sessions ? "" : " s-nieuw"}">${esc(pr.status)}</span>`}</span><span class="pl-chev" aria-hidden="true"></span></button>`;
+    <span class="pl-listtext"><span class="pl-rowtop"><b>${esc(R.title)}</b></span><span class="pl-sub">${esc(sub)}</span>
+    ${make || !stat.t ? "" : `<span class="pl-status${stat.c}">${esc(stat.t)}</span>`}</span><span class="pl-chev" aria-hidden="true"></span></button>`;
 }
 function groupedList(states, todayId, make){
   const rows = listRows();
@@ -1803,25 +1818,25 @@ PL.start = async function(T, opts){
      onderin (Fitts). Een open ronde gaat voor (Zeigarnik): "Ga verder". Wat al vanzelf gaat, staat er als groei, zonder totaal. */
   function showStart(fromRoute){
     if (!fromRoute) route("");
-    app.classList.remove("pl-inround");
+    app.classList.remove("pl-inround"); app.classList.add("pl-atstart");
     const g = greeting(), gr = PL.growthOf(T, data), op = openRound(data);
     screen.innerHTML = `
       <div class="pl-intro">
       <div class="pl-card pl-startcard">
-        <h2 class="pl-h2">${esc(g.title)}</h2>
+        <h2 class="pl-h2">${esc(T.title)}</h2>
         <p class="pl-lead">${esc(T.startText(ctx))}</p>
         ${g.note ? `<p class="pl-note pl-greet">${esc(g.note)}</p>` : ""}
         ${gr.text ? `<p class="pl-grow"><span class="pl-btnflower" aria-hidden="true">${PL.flower(5, {stem: false})}</span>${esc(gr.text)}</p>` : ""}
         <div class="pl-segwrap"><span class="pl-eyebrow" id="pl-seg-l">Hoe wil je trainen?</span>
           <div class="pl-seg" role="radiogroup" aria-labelledby="pl-seg-l">${["A", "B"].map(f => `<button type="button" role="radio" class="pl-form" data-form="${f}" aria-checked="${f === form}">${esc(T.forms[f].name)}</button>`).join("")}</div>
           <p class="pl-note pl-formdesc" id="pl-formdesc">${esc(T.forms[form].desc)}</p></div>
-        ${T.startExtra ? T.startExtra(ctx) : ""}
         ${T.practices ? `<p class="pl-note pl-daarna">Daarna helpt het bij: ${esc(T.helps)}.</p>` : ""}
+        ${T.startExtra ? T.startExtra(ctx) : ""}
         <div class="pl-row pl-links">${T.allRound ? `<button class="pl-help" id="pl-all" type="button">${esc(T.allRound.label)}</button>` : ""}<button class="pl-help" id="pl-make2" type="button">Bedenk je ronde</button></div>
       </div>
       <div class="pl-actions">
         ${op ? `<p class="pl-note pl-center">Je ronde staat nog klaar: vraag ${op.i + 1} van ${op.total}.</p>` : ""}
-        <button class="pl-btn big pl-full" id="pl-go" type="button">${op ? "Ga verder" : "Start"}</button>
+        <button class="pl-btn big pl-full" id="pl-go" type="button">${op ? "Ga verder" : "Start training"}</button>
         ${op ? `<button class="pl-btn quiet pl-full" id="pl-new" type="button">Nieuwe ronde</button>` : ""}
       </div></div>`;
     screen.querySelectorAll(".pl-form").forEach(b => b.addEventListener("click", () => { form = b.dataset.form; data.lastForm = form; $("pl-formdesc").textContent = T.forms[form].desc; screen.querySelectorAll(".pl-form").forEach(x => x.setAttribute("aria-checked", String(x === b))); save(); }));
@@ -1900,7 +1915,7 @@ PL.start = async function(T, opts){
 
   function showMake(fromRoute){
     if (!fromRoute) route("bedenk");
-    app.classList.remove("pl-inround");
+    app.classList.remove("pl-inround", "pl-atstart");
     const ans = {};
     screen.innerHTML = `
       <div class="pl-card" style="display:grid;gap:12px">
@@ -2052,7 +2067,7 @@ PL.start = async function(T, opts){
   async function playRound(again, resume){
     const run = ++runId; inRound = true; topBtn(true);
     route("ronde", view === "ronde" || view === "klaar" || view === "bedenk");
-    app.classList.add("pl-inround");
+    app.classList.add("pl-inround"); app.classList.remove("pl-atstart");
     if (resume){ form = resume.f || form; custom = resume.c || null; }
     data.lastForm = form;
     // v0.13: wat ze vorige ronde zei (Te makkelijk / Pittig) wordt in deze ronde getoetst
@@ -2063,11 +2078,12 @@ PL.start = async function(T, opts){
     const knownBefore = new Set(Object.keys(data.items).filter(k => known(k)));
     // één schermindeling voor een ronde (B1/B2): een werkvlak van hooguit ~600 px in het midden; vraag, hulp en invoer samen in beeld
     screen.innerHTML = `<div class="pl-round" id="pl-round">
-      <div class="pl-roundprog" id="pl-roundprog" hidden><span class="pl-bar" aria-hidden="true"><i id="pl-bar-i"></i></span><span class="pl-count" id="pl-count" aria-live="off"></span>${feelHTML("ronde")}</div>
+      <div class="pl-roundprog" id="pl-roundprog" hidden><span class="pl-bar" aria-hidden="true"><i id="pl-bar-i"></i></span><span class="pl-count" id="pl-count" aria-live="off"></span></div>
       <div class="pl-ask" aria-live="polite"><span class="pl-ask-lead" id="pl-ask-lead"></span><span class="pl-ask-main" id="pl-ask-main"></span></div>
       <div class="pl-rulebar" id="pl-rulebar" hidden><button type="button" class="pl-rulebtn" id="pl-rule-btn" aria-expanded="false" aria-controls="pl-rules">${esc(T.rulesLabel || "Laat de regel zien")}</button><div class="pl-rules" id="pl-rules" hidden></div></div>
       <div class="pl-fb" id="pl-fb" aria-live="polite"></div>
       <div id="pl-work"></div>
+      ${feelHTML("ronde")}
       <div class="pl-sheet" id="pl-sheet" aria-live="polite" hidden></div><div class="pl-sr" id="pl-sr" aria-live="polite"></div></div>`;
     ctx.work = $("pl-work");
     wireFeel();
@@ -2268,12 +2284,12 @@ PL.start = async function(T, opts){
     if (custom) return `Weer jouw keuze: ${nameOf(custom.stoneId)}, met nieuwe ${T.noun}.`;
     let st = data.stage; if (!(data.hold > 0)) while (st < T.stones.length && green(T.stones[st - 1].id)) st++;
     const next = T.stones[st - 1], s_ = stone(cur.id);
-    if (moved > 0) return `Bijna alles kwam meteen en ${nameOf(cur.id)} gaat nu vanzelf. Daarom gaat de volgende ronde een stapje verder: ${next.name}.`;
-    if (moved < 0) return `Deze ronde vroeg veel tussenstappen. De volgende gaat eerst terug naar ${next.name}; daarna weer verder.`;
-    if (next.id !== cur.id) return `${cap(nameOf(cur.id))} gaat al vanzelf. De volgende ronde gaat verder met ${next.name}.`;
-    if (green(cur.id)) return `${cap(nameOf(cur.id))} gaat vanzelf. De volgende ronde houdt het vast, met nieuwe ${T.noun}.`;
-    if (s_.power) return `${cap(nameOf(cur.id))} lukt bijna altijd meteen. De volgende ronde blijft hier, tot het ook vanzelf gaat.`;
-    return `De volgende ronde blijft bij ${nameOf(cur.id)}, met nieuwe ${T.noun}${res.steps ? ". Wat vandaag een tussenstap nodig had, komt terug" : ""}.`;
+    if (moved > 0) return `${cap(nameOf(cur.id))} gaat nu vanzelf. Volgende ronde: ${next.name}.`;
+    if (moved < 0) return `Eerst nog even ${next.name}; daarna weer verder.`;
+    if (next.id !== cur.id) return `${cap(nameOf(cur.id))} gaat al vanzelf. Volgende ronde: ${next.name}.`;
+    if (green(cur.id)) return `${cap(nameOf(cur.id))} gaat vanzelf. Volgende ronde: vasthouden, met nieuwe ${T.noun}.`;
+    if (s_.power) return `${cap(nameOf(cur.id))} lukt bijna altijd meteen. We blijven hier tot het vanzelf gaat.`;
+    return `Volgende ronde: weer ${nameOf(cur.id)}, met nieuwe ${T.noun}${res.steps ? ", en wat een tussenstap nodig had" : ""}.`;
   }
   /* waarnemingen van één ronde, voor de stem (PL.compose) en voor de AI-haak */
   function roundFacts(res, again){
@@ -2316,7 +2332,7 @@ PL.start = async function(T, opts){
     const tooLong = (Date.now() - S.t0) > P.sessionMin * 60000;
     let fact = "";
     if (!factShown && T.aiFact){ factShown = true; fact = `<p class="pl-fact"><b>Weetje over AI.</b> ${esc(T.aiFact)}</p>`; }
-    route("klaar", true); app.classList.remove("pl-inround");
+    route("klaar", true); app.classList.remove("pl-inround", "pl-atstart");
     // v0.11 (Peak-End): een kort feestje. Geen score: wat ze deed, wat erbij groeide, en één volgende stap.
     const V = lastRound.voice || {};   // v0.12: de stem (src/stem.js)
     screen.innerHTML = `
@@ -2326,21 +2342,22 @@ PL.start = async function(T, opts){
         <div class="pl-cheer" id="pl-cheer" aria-live="polite">${esc(lastRound.cheer || lastRound.base)}</div>
         ${res.feelMsg ? `<p class="pl-stemline pl-toets">${esc(res.feelMsg)}</p>` : ""}
         ${V.groei ? `<p class="pl-grow">${esc(V.groei)}</p>` : ""}
-        <div class="pl-tuinwrap pl-tuin-onder" id="pl-endtuin" aria-hidden="true"></div>
-        ${T.endExtra ? T.endExtra(ctx, res) : ""}
+        <div class="pl-tuinwrap pl-tuin-onder pl-tuin-perk" id="pl-endtuin" aria-hidden="true"></div>
         <p class="pl-note pl-nextline"><b>Volgende ronde.</b> ${esc(lastRound.next)}</p>
-        ${V.morgen ? `<p class="pl-note pl-stemline">${esc(V.morgen)}</p>` : ""}
         ${V.lang ? `<p class="pl-note pl-stemline">${esc(V.lang)}</p>` : ""}
-        <div class="pl-feelwrap"><span class="pl-note">Was iets te makkelijk of pittig? Dat mag je zeggen, hoeft niet.</span>${feelHTML("einde")}</div>
+        <div class="pl-feelwrap"><span class="pl-note">Te makkelijk of pittig? Zeg het gerust.</span>${feelHTML("einde")}</div>
+        ${(T.endExtra || V.morgen || fact || (custom && !custom.all)) ? `<details class="pl-details pl-more"><summary>Meer</summary>
+        ${T.endExtra ? T.endExtra(ctx, res) : ""}
+        ${V.morgen ? `<p class="pl-note pl-stemline">${esc(V.morgen)}</p>` : ""}
         ${fact}
-        ${custom && !custom.all ? `<button class="pl-help" id="pl-make3" type="button">Iets anders kiezen</button>` : ""}
+        ${custom && !custom.all ? `<button class="pl-help" id="pl-make3" type="button">Iets anders kiezen</button>` : ""}</details>` : ""}
       </div>
       <div class="pl-actions">
         ${V.tired ? `<button class="pl-btn big pl-full" id="pl-stop" type="button">Klaar voor vandaag</button>
         <button class="pl-btn quiet pl-full" id="pl-again" type="button">Nog een keer</button>` : `<button class="pl-btn big pl-full" id="pl-again" type="button">Nog een keer</button>
         <button class="pl-btn quiet pl-full" id="pl-stop" type="button">Klaar voor vandaag</button>`}
       </div></div>`;
-    allStates().then(st => { const b = $("pl-endtuin"); if (b && PL.tuin) PL.tuin(b, {states: st, strook: true}); });
+    allStates().then(st => { const b = $("pl-endtuin"); if (b && PL.tuin) PL.tuin(b, {states: st, strook: true, focus: T.id}); });
     if (!feelStone) feelStone = res.stoneId;
     wireFeel();
     $("pl-again").addEventListener("click", () => { S.again++; data.forms[form].again++; if (lastRound.ev) lastRound.ev.again = 1; if (T.onAgain) try { T.onAgain(ctx); } catch(e){} save(); playRound(true); });
@@ -2361,7 +2378,7 @@ Antwoord alleen met de zinnen.`).then(t => { if (t && (!lastRound.mustHave || t.
   async function allStates(){ const st = {}; for (const t of trainings) st[t.id] = t.id === T.id ? data : ((await store.load("philearn-" + t.id)) || null); return mergeGroups(st); }
   async function showGarden(back, fromRoute){
     if (!fromRoute) route("tuin");
-    app.classList.remove("pl-inround");
+    app.classList.remove("pl-inround", "pl-atstart");
     const can = T.canDo(ctx);
     gardenBack = back || null;
     // v0.12 (S9, S12, S14, S16): de resultatenkaart van deze training, in zinnen met feiten; daaronder wat ze al kan
@@ -2385,7 +2402,7 @@ Antwoord alleen met de zinnen.`).then(t => { if (t && (!lastRound.mustHave || t.
          Home en de terug-knop gaan meteen; op Home en hier staat daarna "Ga verder". --- */
   function leaveGuard(go){
     if (!inRound) return go();
-    runId++; inRound = false; topBtn(false); app.classList.remove("pl-inround");
+    runId++; inRound = false; topBtn(false); app.classList.remove("pl-inround", "pl-atstart");
     log({leave: 1, st: custom && !custom.all ? custom.stoneId : T.stones[data.stage - 1].id, f: form, open: data.open ? data.open.i : undefined});
     if (data.open && data.open.i === 0 && !(data.open.q || []).some(o => o.rq)) delete data.open;   // nog niets gedaan: dan is er niets om af te maken
     if (T.teardown) T.teardown(ctx);
@@ -2409,7 +2426,7 @@ Antwoord alleen met de zinnen.`).then(t => { if (t && (!lastRound.mustHave || t.
   };
 
   function showBye(){
-    route("", true); app.classList.remove("pl-inround");
+    route("", true); app.classList.remove("pl-inround", "pl-atstart");
     screen.innerHTML = `<div class="pl-intro"><div class="pl-card" style="display:grid;gap:12px"><h2 class="pl-h2">Tot de volgende keer</h2>
       <p class="pl-lead">Je tuin groeit mee met wat je vandaag deed. De volgende keer beginnen we met iets wat vandaag lukte.</p>
       <div class="pl-tuinwrap" id="pl-tuin"></div></div>
@@ -2706,11 +2723,11 @@ const F = {
   "Je trainde hier {dag}. We gaan door met {stap}.",
   "{Dag} werkte je aan {stap}. Daar gaan we verder.",
   "Verder met {stap}, waar je {dag} was.",
-  "{Dag} was je bij {stap}. Vandaag weer een stukje.",
+  "{Dag} was je bij {stap}. Nu weer een stukje.",
   "Het laatst: {stap}, {dag}. Daar pak je het op.",
   "{Stap} ligt klaar; daar was je {dag}.",
   "Je was {dag} bezig met {stap}. Die gaat vandaag door.",
-  "{Dag} {stap}. Vandaag een volgende ronde."]},
+  "{Stap}, {dag}. Nu een volgende ronde."]},
 "home.eerste": {staat: "eerste", toon: "uitnodigend", r: "S2 S12 S18", v: [
   "{Training} begint bij {stap}. Een korte ronde om te kijken?",
   "Eerste keer {training}: we beginnen bij {stap}.",
@@ -2890,13 +2907,13 @@ const F = {
   "{Items} {v:wacht|wachten} al even. Die eerst."]},
 "intro.vorm": {staat: "autonomie", toon: "licht", r: "S8 S18", v: [
   "{Dag} koos je {vorm}. Die staat klaar; wisselen mag.",
-  "Vorige keer {vorm}, {dag}. Weer zo, of anders?",
+  "{Dag} speelde je {vorm}. Weer zo, of anders?",
   "{Vorm} staat aan, net als {dag}.",
   "Je speelde {dag} {vorm}. Kies gerust iets anders.",
   "{Dag} was het {vorm}. Jij kiest.",
   "{Vorm} weer? Dat koos je {dag}.",
-  "Klaar met {vorm}, zoals {dag}.",
-  "{Dag}: {vorm}. Vandaag mag je kiezen."]},
+  "{Vorm} staat weer klaar, zoals {dag}.",
+  "{Dag}: {vorm}. Kies gerust iets anders."]},
 "intro.uitleg": {staat: "uitleg", toon: "rustig", r: "S12 S6 S18", v: [
   "Bij {stap} probeer ik vandaag {mode} als uitleg.",
   "Vandaag leg ik {stap} uit met {mode}.",
@@ -3189,6 +3206,9 @@ S.say = function(fam, slots, mem){
   // "pl:" = alleen bij meervoud, "ev:" = alleen bij enkelvoud (v0.12.1: geen "de één zin die vanzelf gaan")
   const ok = F.v.map((t, i) => ({t, id: fam + "#" + (i + 1)})).filter(v => slotsOf(v.t).every(k => sl[k] != null && sl[k] !== "") && !(/^pl:/.test(v.t) && !sl.pl) && !(/^ev:/.test(v.t) && sl.pl));
   if (!ok.length) return "";
+  // v0.16 (Tesler): geen tijdwoord dubbel ("Vandaag … vandaag") en geen "Vorige keer … vandaag"
+  const clash = t => { const z = t.toLowerCase(); return (z.match(/\bvandaag\b/g) || []).length > 1 || (z.match(/\bgisteren\b/g) || []).length > 1 || (/vorige keer/.test(z) && /\bvandaag\b/.test(z)); };
+  { const nc = ok.filter(v => !clash(fill(v.t, sl))); if (nc.length) ok.splice(0, ok.length, ...nc); }
   const rec = mem.recent[fam] || [];
   let cand = ok.filter(v => !rec.includes(v.id));
   if (!cand.length){ const age = v => rec.indexOf(v.id); cand = ok.slice().sort((a, b) => age(a) - age(b)).slice(0, 1); }   // alles kort geleden gebruikt: de oudste
@@ -3756,7 +3776,7 @@ const T = {
   id: "rekenmuur", title: "De rekenmuur", version: "v0.6.1",
   noun: "sommen", subject: "Rekenen", glyph: "10", tint: "#F4DDE3",
   okQuiet: true, okPause: 450,   // v0.6.1: geen strook "Gelukt" en geen Verder; het antwoord kleurt groen en de volgende som komt
-  practices: "rekenen uit je hoofd, van splitsen tot 10 tot procenten en breuken",
+  practices: "rekenen uit je hoofd: eerst splitsen tot 10, later procenten en breuken",
   helps: "rekenen met geld, tijd en grote getallen, en verhoudingen",
   stones: STONES, stoneOf, fromKey: k => fromKey(k),
   rules: it => { const f = HOE[it.type]; if (!f) return null; ALT = false; let R = f(it); const af = it.eq.replace("?", kc(it.ans)); if (R.lines.join(" ").includes(af)){ ALT = true; R = f(it); ALT = false; } return {title: R.title, lines: R.lines, html: `<div class="rk-vb">${R.html}</div>`}; },
@@ -4384,7 +4404,7 @@ const T = {
   voiceLabel: k => `"${(BANK[k.slice(2)] || {ev: k.slice(2)}).ev}"`,   // v0.12: de stem noemt het woord in het enkelvoud; het meervoud is het antwoord
   canDo(ctx){ return Object.keys(ctx.data.items).filter(k => ctx.known(k) && BANK[k.slice(2)]).map(k => BANK[k.slice(2)].mv).sort((a, b) => a.localeCompare(b, "nl")).slice(0, 60); },
 
-  setup(ctx){ ctx.work.innerHTML = `<div class="pl-card sp-board"><div class="sp-head"><p class="sp-frame" id="sp-frame"></p>${ctx.canSay ? `<button type="button" class="pl-help" id="sp-say">Lees voor</button>` : ""}</div><div class="pl-row" id="sp-answer"></div><div class="sp-step" id="sp-step"></div></div>`; },
+  setup(ctx){ ctx.work.innerHTML = `<div class="pl-card sp-board"><div class="sp-head"><p class="sp-frame" id="sp-frame"></p>${ctx.canSay ? `<button type="button" class="pl-btn quiet sp-saybtn" id="sp-say">Lees voor</button>` : ""}</div><div class="pl-row" id="sp-answer"></div><div class="sp-step" id="sp-step"></div></div>`; },
 
   async ask(item, ctx){
     const w = item.w, box = document.getElementById("sp-answer");
