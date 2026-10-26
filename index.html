@@ -489,6 +489,14 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 .pl-more{border-top:1px solid var(--pl-line);padding-top:4px}
 .pl-more > :not(summary){margin-top:8px}
 .pl-status.s-klaar{color:var(--pl-violet-deep);font-weight:500}
+/* v0.17 snel door: wat net lukte, rustig boven de volgende vraag; het werkvlak flitst kort groen */
+.pl-prev{background:var(--pl-leaf-soft);border-left:4px solid var(--pl-leaf);border-radius:10px;padding:6px 12px;font-size:.92rem;line-height:1.4;color:var(--pl-ink)}
+.pl-prev b{color:#1F6B45;font-family:var(--pl-display);font-weight:600;margin-right:6px}
+.pl-prev-stem{color:var(--pl-ink-soft)}
+.pl-prev[hidden]{display:none}
+@keyframes pl-okflash{0%{box-shadow:0 0 0 0 rgba(47,133,90,0)}30%{box-shadow:0 0 0 4px var(--pl-leaf)}100%{box-shadow:0 0 0 0 rgba(47,133,90,0)}}
+.pl-okflash > *:first-child{animation:pl-okflash .55s ease-out;border-radius:var(--pl-r-card)}
+@media (prefers-reduced-motion:reduce){.pl-okflash > *:first-child{animation:none}}
 
 /* De tuin v0.8: lagen (lucht, heuvels, wei, tuintjes, gras), licht volgens de klok, beweging die meegroeit (gd-t0 … gd-t3).
    Alleen transform, opacity en filter; bij "minder beweging" staat alles stil (core.css). Geen tekst. */
@@ -947,7 +955,7 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 </style>
 </head>
 <body>
-<!-- Leeratelier Leeratelier v0.16.1. Gebouwd op de Leeratelier-kern v0.16.1. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
+<!-- Leeratelier Leeratelier v0.17. Gebouwd op de Leeratelier-kern v0.17. Lettertypen Fredoka en Lexend (SIL Open Font License) zitten in de pagina; er gaat geen verzoek naar buiten. Opslag: window.storage (Claude-chat), anders db (gepubliceerd), anders browser. -->
 <main class="pl-app" id="pl-app"></main>
 
 
@@ -968,7 +976,7 @@ summary:focus-visible,.pl-listrow:focus-visible,.pl-form:focus-visible{outline:3
 (function(){
 "use strict";
 const PL = window.PL = {};
-PL.VERSION = "v0.16.1";
+PL.VERSION = "v0.17";
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -1673,6 +1681,7 @@ PL.start = async function(T, opts){
   let sessionAdded = false, form = data.lastForm || "A", lastRound = null, factShown = false, wheelRun = 0, wheelCount = 0, custom = null;
   let wiseShown = false, aiNoteShown = false, roundAdj = null, tried = null;
   let cur_ = null, okVoice = () => "";
+  let prevOk = null;   // v0.17: wat er net lukte, als regel boven de volgende vraag
   let roundFeel = null, feelUsed = false, feelRulesOpened = false, feelStone = null, feelOpenT = 0;   // v0.13 Te makkelijk / Pittig   // v0.12: de vraag die nu loopt (voor de stem na "Gelukt")
   /* tijdens een ronde staat "Laat zien" (het scherm voor papa of je zus) niet in de kop: hulp bij de vraag zit in de ronde zelf */
   const topBtn = on => { const b = $("pl-garden-btn"); if (b) b.hidden = on; };
@@ -1691,6 +1700,10 @@ PL.start = async function(T, opts){
       $("pl-verder").addEventListener("click", done);
     });
   }
+  function showPrev(){ const el = $("pl-prev"); if (!el) return; if (!prevOk || !queueLeft()){ el.hidden = true; return; }
+    el.innerHTML = `<b>Gelukt</b>${esc(prevOk.text)}${prevOk.extra ? ` <span class="pl-prev-stem">${esc(prevOk.extra)}</span>` : ""}`; el.hidden = false; prevOk = null; }
+  function hidePrev(){ const el = $("pl-prev"); if (el) el.hidden = true; }
+  let queueLeft = () => true;
   let runId = 0, inRound = false;   // een ronde die verlaten wordt, krijgt een nieuw runId; de oude lus stopt dan vanzelf
 
   function save(){
@@ -1777,8 +1790,12 @@ PL.start = async function(T, opts){
         // v0.13.1: een training met eigen "goed"-beeld (Tafelreis: de kaart draait, de figuur springt) kan de strook overslaan;
         // dan meteen door naar de volgende vraag. Voor schermlezers staat "Gelukt" wel in een onzichtbare regel.
         if (T.okQuiet){ const sr = $("pl-sr"); if (sr) sr.textContent = "Gelukt. " + text; return; }
+        // v0.17 (Doherty): in elke training meteen door. Het groene beeld flitst kort; "Gelukt" en het waarom blijven als
+        // rustige regel boven de volgende vraag staan (lezen mag, wachten hoeft niet). Geen strook, geen Verder.
+        if (!T.okSheet){ const sr = $("pl-sr"); if (sr) sr.textContent = "Gelukt. " + text; const extra = okVoice(); prevOk = {text, extra};
+          const w = $("pl-work"); if (w){ w.classList.remove("pl-okflash"); void w.offsetWidth; w.classList.add("pl-okflash"); } return; }
         const sh = $("pl-sheet"); if (!sh) return; const extra = okVoice(); sh.innerHTML = `<div class="pl-ok" role="status"><p class="pl-ok-text"><b>Gelukt</b>${esc(text)}</p>${extra ? `<p class="pl-ok-stem">${esc(extra)}</p>` : ""}</div>`; sh.hidden = false; requestAnimationFrame(() => sh.classList.add("open")); if (!(T.sound && T.sound.ownFeedback)) PL.chime(); },
-      step(text){ rulesShow(true); cur_.step = true; ctx.fb.clearSheet(); $("pl-fb").innerHTML = `<div class="pl-step">${tried != null ? `<span class="pl-tried">Jouw antwoord: ${esc(tried)}</span>` : ""}<b>Tussenstap</b>${esc(text)}</div>`; },
+      step(text){ hidePrev(); rulesShow(true); cur_.step = true; ctx.fb.clearSheet(); $("pl-fb").innerHTML = `<div class="pl-step">${tried != null ? `<span class="pl-tried">Jouw antwoord: ${esc(tried)}</span>` : ""}<b>Tussenstap</b>${esc(text)}</div>`; },
       tried(v){ tried = v; },
       clearSheet(){ const sh = $("pl-sheet"); if (sh && !sh.hidden){ sh.classList.remove("open"); sh.hidden = true; sh.innerHTML = ""; } },
       note(text){ ctx.fb.clearSheet(); $("pl-fb").innerHTML = `<p class="pl-note">${esc(text)}</p>`; },
@@ -2083,6 +2100,7 @@ PL.start = async function(T, opts){
       <div class="pl-rulebar" id="pl-rulebar" hidden><button type="button" class="pl-rulebtn" id="pl-rule-btn" aria-expanded="false" aria-controls="pl-rules">${esc(T.rulesLabel || "Laat de regel zien")}</button><div class="pl-rules" id="pl-rules" hidden></div></div>
       <div class="pl-fb" id="pl-fb" aria-live="polite"></div>
       <div id="pl-work"></div>
+      <div class="pl-prev" id="pl-prev" hidden></div>
       ${feelHTML("ronde")}
       <div class="pl-sheet" id="pl-sheet" aria-live="polite" hidden></div><div class="pl-sr" id="pl-sr" aria-live="polite"></div></div>`;
     ctx.work = $("pl-work");
@@ -2129,6 +2147,7 @@ PL.start = async function(T, opts){
     if (again || adjNote) ctx.fb.note([again ? pick(AGAIN) : "", adjNote].filter(Boolean).join(" "));
     const restored = resume ? resume.q.map(deserItem).filter(Boolean) : null;
     const queue = restored && restored.length ? restored : composeRound();
+    queueLeft = () => queue.length > 0; prevOk = null;
     const offset = restored && restored.length ? resume.i : 0;
     const cur = custom && !custom.all ? (T.stones.find(x => x.id === custom.stoneId) || T.stones[0]) : T.stones[data.stage - 1];
     const res = {t0: new Date().toISOString().slice(0, 19), items: [], first: 0, steps: 0, fluent: 0, stoneId: cur.id, stageAtStart: data.stage, reqN: 0, reqOk: 0, hints: 0, switches: 0, modes: {}, rts: [], reqItems: [], adj: roundAdj && roundAdj.kind};
@@ -2187,10 +2206,11 @@ PL.start = async function(T, opts){
       save();
       // v0.9.2: de oplossing blijft staan tot de volgende vraag: lang genoeg om "Gelukt" en het waarom te lezen
       // (1,2 s + 45 ms per teken, hooguit 7 s); "Verder" gaat meteen door. Het tempo wordt vóór deze pauze gemeten.
-      if (T.okQuiet && r.first !== undefined && !($("pl-sheet") && $("pl-sheet").querySelector(".pl-ok"))) await sleep(T.okPause || 250);   // snel door (Tafelreis)
+      if (r.first !== undefined && !($("pl-sheet") && $("pl-sheet").querySelector(".pl-ok"))) await sleep(T.okPause || 550);   // v0.17: snel door, in elke training
       else await waitNext(Math.max(T.pause || 900, Math.min(7000, 1200 + (($("pl-fb").innerText || "") + ($("pl-sheet") ? $("pl-sheet").innerText : "")).length * 45)) * (ctx.pace === "rustig" ? 1.4 : 1), run);
       if (run !== runId) return;
       ctx.fb.clear();
+      showPrev();
     }
     inRound = false; topBtn(false); delete data.open;
     res.knownBefore = knownBefore;
@@ -5380,7 +5400,8 @@ function makeRegion(RG){
 
   const titleNl = RG.id === "wereld" ? "Landen van de wereld" : `Landen van ${R.nl}`;
   const T = {
-    id: RG.id, title: titleNl, version: "v0.6.2", noun: "landen", subject: "Topografie", glyph: RG.glyph, tint: RG.tint,
+    id: RG.id, title: titleNl, version: "v0.6.3", noun: "landen", okPause: 1000,   // v0.17: de hoofdstad staat even op de kaart, dan de volgende vraag
+    subject: "Topografie", glyph: RG.glyph, tint: RG.tint,
     group: "topo", groupTitle: "Landen van de wereld", groupName: R.nl, groupCount: ASK.length, wide: true,
     stones: STONE_LIST, stoneOf, fromKey: k => C[k.slice(2)] ? {key: k, id: k.slice(2), label: nl(k.slice(2))} : null,
     practices: `alle ${ASK.length} landen van ${RG.id === "wereld" ? "de wereld" : R.nl} vinden op de kaart en benoemen`,
