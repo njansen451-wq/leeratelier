@@ -1093,7 +1093,7 @@ let audioEl = null, ttsVoice = null;
 const pickVoice = () => { try { const vs = speechSynthesis.getVoices() || [];
   ttsVoice = vs.find(v => /^nl[-_]NL/i.test(v.lang) && /xander|claire/i.test(v.name)) || vs.find(v => /^nl[-_]NL/i.test(v.lang)) || vs.find(v => /^nl/i.test(v.lang)) || null; } catch(e){ ttsVoice = null; } };
 try { if ("speechSynthesis" in window){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; } } catch(e){}
-PL.audio = {has: id => !!(id && AUD()[id]), played: [], spoken: []};   // played/spoken: voor tests en het ouderscherm
+PL.audio = {has: id => !!(id && AUD()[id]), played: [], spoken: [], el: () => audioEl};   // played/spoken: voor tests en het ouderscherm
 PL.canSay = (() => { try { return "speechSynthesis" in window || Object.keys(AUD()).length > 0; } catch(e){ return false; } })();
 PL.say = function(text, id){
   try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch(e){}
@@ -1102,7 +1102,20 @@ PL.say = function(text, id){
   if (id && AUDIO[id]){
     PL.audio.played.push(id);
     try { if (!audioEl){ audioEl = new Audio(); audioEl.preload = "auto"; try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch(e){} }
-      audioEl.src = AUDIO[id]; audioEl.currentTime = 0; const p = audioEl.play(); if (p && p.catch) p.catch(() => speak(text)); } catch(e){ speak(text); }
+      clearTimeout(PL.audio._stop); audioEl.ontimeupdate = null;
+      /* "bestand#t=a,b": een stuk uit één bestand (de chatversie heeft hooguit 511 bestanden). Zelf zoeken en stoppen:
+         browsers doen het fragment niet betrouwbaar. */
+      const m = /^(.*)#t=([\d.]+),([\d.]+)$/.exec(AUDIO[id]);
+      if (m){ const url = new URL(m[1], location.href).href, a = +m[2], b = +m[3];
+        if (audioEl.src !== url) audioEl.src = url;
+        const go = () => { try { audioEl.currentTime = a; } catch(e){} const p = audioEl.play(); if (p && p.catch) p.catch(() => speak(text));
+          audioEl.ontimeupdate = () => { if (audioEl.currentTime >= b){ audioEl.pause(); audioEl.ontimeupdate = null; } };
+          PL.audio._stop = setTimeout(() => { audioEl.pause(); audioEl.ontimeupdate = null; }, (b - a) * 1000 + 150);
+          /* kan de server niet zoeken (geen Range), dan zou het verkeerde stuk klinken: dan de browserstem */
+          setTimeout(() => { if (!audioEl.paused && audioEl.currentTime < a - 0.05){ audioEl.pause(); clearTimeout(PL.audio._stop); speak(text); } }, 200); };
+        if (audioEl.readyState >= 1) go(); else { audioEl.addEventListener("loadedmetadata", go, {once: true}); audioEl.load(); }
+      } else { audioEl.src = AUDIO[id]; audioEl.currentTime = 0; const p = audioEl.play(); if (p && p.catch) p.catch(() => speak(text)); }
+    } catch(e){ speak(text); }
     return;
   }
   speak(text);
