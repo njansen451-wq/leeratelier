@@ -1,4 +1,4 @@
-# Leeratelier · natalia (v0.23.0)
+# Leeratelier · natalia (v0.24.0)
 
 Deze map is gebouwd uit de bronrepo `natalia-learning-lab` met `node src/build.js --space natalia dist/leeratelier`. Niet met de hand wijzigen: pas de bron aan en bouw opnieuw.
 
